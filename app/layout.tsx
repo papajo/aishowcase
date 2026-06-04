@@ -16,9 +16,66 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 })
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.dev"
+
 export const metadata: Metadata = {
-  title: "AI Showcase — My AI Journey",
-  description: "Building, testing, and sharing AI tools and projects daily.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "AI Showcase — Building with AI Daily",
+    template: "%s — AI Showcase",
+  },
+  description:
+    "AI developer building, testing, and sharing tools and projects daily. Explore my tools directory, projects, and journal.",
+  keywords: [
+    "AI",
+    "artificial intelligence",
+    "machine learning",
+    "LLM",
+    "developer",
+    "showcase",
+    "tools",
+    "projects",
+    "RAG",
+    "agents",
+    "Next.js",
+  ],
+  authors: [{ name: "[Your Name]" }],
+  creator: "[Your Name]",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "AI Showcase",
+    title: "AI Showcase — Building with AI Daily",
+    description:
+      "AI developer building, testing, and sharing tools and projects daily.",
+    images: [
+      {
+        url: `${siteUrl}/og.png`,
+        width: 1200,
+        height: 630,
+        alt: "AI Showcase",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AI Showcase — Building with AI Daily",
+    description:
+      "AI developer building, testing, and sharing tools and projects daily.",
+    images: [`${siteUrl}/og.png`],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 }
 
 export default function RootLayout({
@@ -28,6 +85,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+      </head>
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
