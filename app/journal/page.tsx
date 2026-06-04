@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db"
 import { PostCard } from "@/components/journal/PostCard"
+import { SlideUp } from "@/components/shared/Motion"
+import { ScrollStagger, ScrollStaggerItem } from "@/components/shared/ScrollReveal"
 
 export const metadata = {
   title: "Journal — AI Showcase",
@@ -19,22 +21,25 @@ export default async function JournalPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
-      <h1 className="text-3xl font-bold tracking-tight mb-2">Journal</h1>
-      <p className="text-muted-foreground mb-8">
-        Daily logs, experiments, and insights from my AI development journey.
-      </p>
+      <SlideUp>
+        <h1 className="text-3xl font-bold tracking-tight mb-2">Journal</h1>
+        <p className="text-muted-foreground mb-8">
+          Daily logs, experiments, and insights from my AI development journey.
+        </p>
+      </SlideUp>
 
-      <div className="space-y-4">
+      <ScrollStagger className="space-y-4" staggerDelay={0.1}>
         {posts.map((post: any) => (
-          <PostCard
-            key={post.id}
-            post={{
-              ...post,
-              publishedAt: post.publishedAt,
-            }}
-          />
+          <ScrollStaggerItem key={post.id}>
+            <PostCard
+              post={{
+                ...post,
+                publishedAt: post.publishedAt,
+              }}
+            />
+          </ScrollStaggerItem>
         ))}
-      </div>
+      </ScrollStagger>
 
       {posts.length === 0 && (
         <p className="text-center text-muted-foreground py-12">
