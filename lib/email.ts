@@ -1,12 +1,24 @@
-import { Resend } from "resend"
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    return null
+  }
+  
+  // Dynamic import to avoid build-time errors
+  return import("resend").then(({ Resend }) => new Resend(apiKey))
+}
 
 const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@yourdomain.com"
 const TO_EMAIL = process.env.CONTACT_EMAIL || "hello@yourdomain.com"
 
 export async function sendWelcomeEmail(email: string) {
   try {
+    const resend = await getResend()
+    if (!resend) {
+      console.warn("Email service not configured, skipping welcome email")
+      return { success: true }
+    }
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -60,6 +72,12 @@ export async function sendContactEmail({
   message: string
 }) {
   try {
+    const resend = await getResend()
+    if (!resend) {
+      console.warn("Email service not configured, skipping contact email")
+      return { success: true }
+    }
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: TO_EMAIL,
@@ -109,6 +127,12 @@ export async function sendAutoReply({
   email: string
 }) {
   try {
+    const resend = await getResend()
+    if (!resend) {
+      console.warn("Email service not configured, skipping auto-reply")
+      return { success: true }
+    }
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
