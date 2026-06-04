@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { checkAdminAuth } from "@/lib/admin-auth"
 
 const postSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -10,7 +11,27 @@ const postSchema = z.object({
   tags: z.array(z.string()).optional(),
 })
 
+export async function GET(req: Request) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
+  try {
+    const posts = await prisma.dailyPost.findMany({
+      orderBy: { publishedAt: "desc" },
+    })
+    return NextResponse.json({ success: true, posts })
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch posts" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(req: Request) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
   try {
     const body = await req.json()
     const data = postSchema.parse(body)

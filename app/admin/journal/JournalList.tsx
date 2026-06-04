@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import Link from "next/link"
+import { adminFetch } from "@/lib/admin-client"
 
 interface Post {
   id: string
@@ -14,6 +15,14 @@ interface Post {
 }
 
 export function JournalList({ posts }: { posts: Post[] }) {
+  function handleDelete(id: string) {
+    if (confirm("Delete this entry?")) {
+      adminFetch(`/api/admin/journal/${id}`, { method: "DELETE" }).then(() =>
+        location.reload()
+      )
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
@@ -66,13 +75,7 @@ export function JournalList({ posts }: { posts: Post[] }) {
                     <Pencil className="h-4 w-4" />
                   </Link>
                   <button
-                    onClick={() => {
-                      if (confirm("Delete this entry?")) {
-                        fetch(`/api/admin/journal/${post.id}`, {
-                          method: "DELETE",
-                        }).then(() => location.reload())
-                      }
-                    }}
+                    onClick={() => handleDelete(post.id)}
                     className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />

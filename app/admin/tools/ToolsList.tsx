@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Plus, Pencil, Trash2, ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { adminFetch } from "@/lib/admin-client"
 
 interface Tool {
   id: string
@@ -17,6 +18,14 @@ interface Tool {
 }
 
 export function ToolsList({ tools }: { tools: Tool[] }) {
+  function handleDelete(id: string) {
+    if (confirm("Delete this tool?")) {
+      adminFetch(`/api/admin/tools/${id}`, { method: "DELETE" }).then(() =>
+        location.reload()
+      )
+    }
+  }
+
   return (
     <div className="p-8">
       <div className="flex items-center justify-between mb-8">
@@ -97,13 +106,7 @@ export function ToolsList({ tools }: { tools: Tool[] }) {
                     <Pencil className="h-4 w-4" />
                   </Link>
                   <button
-                    onClick={() => {
-                      if (confirm("Delete this tool?")) {
-                        fetch(`/api/admin/tools/${tool.id}`, {
-                          method: "DELETE",
-                        }).then(() => location.reload())
-                      }
-                    }}
+                    onClick={() => handleDelete(tool.id)}
                     className="p-2 hover:bg-destructive/10 hover:text-destructive rounded-lg transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />

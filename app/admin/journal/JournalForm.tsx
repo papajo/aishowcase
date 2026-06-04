@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
 import { Save, ArrowLeft, Plus, X } from "lucide-react"
 import Link from "next/link"
+import { adminFetch } from "@/lib/admin-client"
 
 interface JournalFormProps {
   post?: {
@@ -66,7 +67,7 @@ export function JournalForm({ post }: JournalFormProps) {
         : "/api/admin/journal"
       const method = post ? "PUT" : "POST"
 
-      const res = await fetch(url, {
+      const res = await adminFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

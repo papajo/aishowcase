@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { checkAdminAuth } from "@/lib/admin-auth"
 
 const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -15,7 +16,27 @@ const projectSchema = z.object({
   content: z.string().optional(),
 })
 
+export async function GET(req: Request) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
+  try {
+    const projects = await prisma.project.findMany({
+      orderBy: { order: "asc" },
+    })
+    return NextResponse.json({ success: true, projects })
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch projects" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(req: Request) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
   try {
     const body = await req.json()
     const data = projectSchema.parse(body)

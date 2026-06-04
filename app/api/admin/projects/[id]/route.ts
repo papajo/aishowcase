@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { checkAdminAuth } from "@/lib/admin-auth"
 
 const projectSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -19,6 +20,9 @@ export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
   try {
     const { id } = await params
     const body = await req.json()
@@ -60,6 +64,9 @@ export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
   try {
     const { id } = await params
 

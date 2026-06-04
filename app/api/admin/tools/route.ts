@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { checkAdminAuth } from "@/lib/admin-auth"
 
 const toolSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -12,7 +13,27 @@ const toolSchema = z.object({
   featured: z.boolean().optional(),
 })
 
+export async function GET(req: Request) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
+  try {
+    const tools = await prisma.tool.findMany({
+      orderBy: { createdAt: "desc" },
+    })
+    return NextResponse.json({ success: true, tools })
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch tools" },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(req: Request) {
+  const authError = checkAdminAuth(req)
+  if (authError) return authError
+
   try {
     const body = await req.json()
     const data = toolSchema.parse(body)
