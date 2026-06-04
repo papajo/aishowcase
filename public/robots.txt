@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://aishowcase.dev
+
+# Sitemaps
+Sitemap: https://aishowcase.dev/sitemap.xml
