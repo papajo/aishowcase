@@ -53,7 +53,7 @@ export default function AboutPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">
-                [Your Name]
+                [PJ]
               </h1>
               <p className="text-lg text-muted-foreground mb-4">
                 AI developer passionate about building intelligent systems.
