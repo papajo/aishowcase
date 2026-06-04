@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { sendWelcomeEmail } from "@/lib/email"
 
 const subscribeSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -16,6 +17,11 @@ export async function POST(req: Request) {
       update: { active: true },
       create: { email },
     })
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail(email).catch((err) =>
+      console.error("Welcome email failed:", err)
+    )
 
     return NextResponse.json({
       success: true,

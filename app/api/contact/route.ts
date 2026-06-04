@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
+import { sendContactEmail, sendAutoReply } from "@/lib/email"
 
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -12,12 +13,20 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { name, email, message } = contactSchema.parse(body)
 
-    // In production, you would:
-    // 1. Send an email via Resend/SendGrid
-    // 2. Store in database
-    // 3. Send to Slack webhook
+    // Send email to site owner
+    const emailResult = await sendContactEmail({ name, email, message })
 
-    console.log("Contact form submission:", { name, email, message })
+    if (!emailResult.success) {
+      return NextResponse.json(
+        { error: "Failed to send message. Please try again." },
+        { status: 500 }
+      )
+    }
+
+    // Send auto-reply to sender (non-blocking)
+    sendAutoReply({ name, email }).catch((err) =>
+      console.error("Auto-reply failed:", err)
+    )
 
     return NextResponse.json({
       success: true,
