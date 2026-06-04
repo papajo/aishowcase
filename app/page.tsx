@@ -39,7 +39,7 @@ export default async function HomePage() {
       <section className="mb-16">
         <SlideUp>
           <h1 className="text-4xl font-bold tracking-tight mb-4">
-            Hi, I&apos;m <span className="text-primary">[Your Name]</span>
+            Hi, I&apos;m <span className="text-primary">PJ</span>
           </h1>
         </SlideUp>
         <SlideUp delay={0.1}>

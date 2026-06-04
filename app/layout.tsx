@@ -41,8 +41,8 @@ export const metadata: Metadata = {
     "agents",
     "Next.js",
   ],
-  authors: [{ name: "[Your Name]" }],
-  creator: "[Your Name]",
+  authors: [{ name: "PJ" }],
+  creator: "PJ",
   openGraph: {
     type: "website",
     locale: "en_US",

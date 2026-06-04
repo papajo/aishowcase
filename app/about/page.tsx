@@ -49,7 +49,7 @@ export default function AboutPage() {
         <SlideUp>
           <div className="flex items-start gap-6">
             <div className="h-24 w-24 rounded-full bg-muted flex items-center justify-center text-3xl font-bold shrink-0">
-              [YN]
+              PJ
             </div>
             <div>
               <h1 className="text-3xl font-bold tracking-tight mb-2">

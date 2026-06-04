@@ -165,7 +165,7 @@ export async function sendAutoReply({
           <div style="border-top: 1px solid #262626; padding-top: 24px; margin-top: 32px;">
             <p style="color: #525252; font-size: 14px;">
               Best regards,<br>
-              [Your Name]
+              PJ
             </p>
           </div>
         </body>
