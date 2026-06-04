@@ -1,4 +1,5 @@
 import { PrismaClient } from "./generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
@@ -7,33 +8,21 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) {
-    // Return a proxy that throws meaningful errors when queried
-    // This allows build-time to succeed without a database
+    console.error("[db] DATABASE_URL is not set")
     return new Proxy({} as PrismaClient, {
       get(_, prop) {
         if (prop === Symbol.toStringTag) return "PrismaClient"
-        throw new Error(
-          "DATABASE_URL is not set. Cannot query database during build."
-        )
+        throw new Error("DATABASE_URL is not set")
       },
     })
   }
 
-  // Dynamic import to avoid build-time issues
   try {
-    const { PrismaPg } = require("@prisma/adapter-pg")
     const adapter = new PrismaPg({ connectionString })
     return new PrismaClient({ adapter })
-  } catch {
-    // If adapter fails, return proxy that throws on query
-    return new Proxy({} as PrismaClient, {
-      get(_, prop) {
-        if (prop === Symbol.toStringTag) return "PrismaClient"
-        throw new Error(
-          "Failed to initialize database adapter. Check DATABASE_URL."
-        )
-      },
-    })
+  } catch (e) {
+    console.error("[db] Failed to create PrismaClient:", e)
+    throw e
   }
 }
 
