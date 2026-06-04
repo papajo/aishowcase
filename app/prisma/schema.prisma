@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tool {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String
+  longDescription String?  @db.Text
+  category        String
+  logoUrl         String?
+  websiteUrl      String?
+  rating          Float    @default(0)
+  reviewCount     Int      @default(0)
+  features        Json?
+  pricing         Json?
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  reviews         Review[]
+
+  @@index([category])
+  @@index([rating])
+  @@index([createdAt])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  toolId     String
+  rating     Int
+  content    String
+  pros       String[]
+  cons       String[]
+  authorName String
+  createdAt  DateTime @default(now())
+  tool       Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+}
+
+model Project {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  description  String
+  thumbnailUrl String?
+  techStack    String[]
+  tags         String[]
+  githubUrl    String?
+  liveUrl      String?
+  content      String   @db.Text
+  featured     Boolean  @default(false)
+  order        Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([featured])
+  @@index([createdAt])
+}
+
+model DailyPost {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String
+  content     String   @db.Text
+  tags        String[]
+  publishedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([publishedAt])
+}
+
+model NewsletterSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  subscribedAt DateTime @default(now())
+  active       Boolean  @default(true)
+}

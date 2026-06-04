@@ -1,0 +1,1 @@
+Build a clone of https://www.everydev.ai/ so i could showcase my own Ai Projects and Skillsets on everyday basis. Start with a PRD, a prompt to build it, plan, design architure and execution steps in phases.
