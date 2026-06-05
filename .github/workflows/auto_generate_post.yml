@@ -36,7 +36,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
           ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
-        run: python scripts/auto_generate_post.py --topic "weekly run" --publish false
+        run: python scripts/auto_generate_post.py --topic "a notable new AI tool worth showcasing" --publish false
         continue-on-error: true
 
       - name: Check for changes
