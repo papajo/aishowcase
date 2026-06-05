@@ -1,0 +1,4 @@
+# Auto-generate post script dependencies.
+# The script uses only the Python standard library (urllib, json) for the OpenAI
+# call, so no third-party packages are strictly required. This file is kept so CI
+# `pip install -r scripts/requirements.txt` succeeds and is easy to extend later.
