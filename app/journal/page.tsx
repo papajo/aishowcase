@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db"
+import { getSortedPosts } from "@/lib/md-utils"
 import { PostCard } from "@/components/journal/PostCard"
 import { SlideUp } from "@/components/shared/Motion"
 import { ScrollStagger, ScrollStaggerItem } from "@/components/shared/ScrollReveal"
@@ -9,15 +9,7 @@ export const metadata = {
 }
 
 export default async function JournalPage() {
-  let posts: any[] = []
-
-  try {
-    posts = await prisma.dailyPost.findMany({
-      orderBy: { publishedAt: "desc" },
-    })
-  } catch (e) {
-    // Database not available
-  }
+  const posts = getSortedPosts()
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
@@ -29,14 +21,9 @@ export default async function JournalPage() {
       </SlideUp>
 
       <ScrollStagger className="space-y-4" staggerDelay={0.1}>
-        {posts.map((post: any) => (
-          <ScrollStaggerItem key={post.id}>
-            <PostCard
-              post={{
-                ...post,
-                publishedAt: post.publishedAt,
-              }}
-            />
+        {posts.map((post) => (
+          <ScrollStaggerItem key={post.slug}>
+            <PostCard post={post} />
           </ScrollStaggerItem>
         ))}
       </ScrollStagger>

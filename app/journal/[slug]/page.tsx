@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db"
+import { getPostBySlug } from "@/lib/md-utils"
 import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock } from "lucide-react"
@@ -11,39 +11,23 @@ interface PostPageProps {
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { slug } = await params
+  const post = getPostBySlug(slug)
 
-  try {
-    const post = await prisma.dailyPost.findUnique({
-      where: { slug },
-    })
+  if (!post) return { title: "Post Not Found" }
 
-    if (!post) return { title: "Post Not Found" }
-
-    return {
-      title: `${post.title} — Journal`,
-      description: post.excerpt,
-    }
-  } catch {
-    return { title: "Post Not Found" }
+  return {
+    title: `${post.title} — Journal`,
+    description: post.excerpt,
   }
 }
 
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params
+  const post = getPostBySlug(slug)
 
-  let post: any = null
+  if (!post) notFound()
 
-  try {
-    post = await prisma.dailyPost.findUnique({
-      where: { slug },
-    })
-
-    if (!post) notFound()
-  } catch (e) {
-    notFound()
-  }
-
-  const date = new Date(post.publishedAt)
+  const date = new Date(post.date)
   const formattedDate = date.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
