@@ -42,13 +42,24 @@ def slugify(text: str) -> str:
     text = re.sub(r"[^a-z0-9\s-]", "", text)
     text = re.sub(r"[\s_-]+", "-", text)
     return text.strip("-")[:60] or "post"
-
+BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 
 def generate_with_openai(topic: str, model: str) -> str:
-    """Call the OpenAI API. Returns markdown body. Raises on hard failure."""
+    """Call the LLM API (OpenAI or compatible). Returns markdown body. Raises on hard failure."""
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        # Stub mode so the pipeline is testable without a key.
+        # If running in an interactive terminal, provide a helpful guide.
+        if sys.stdout.isatty():
+            print("\n" + "="*60)
+            print("⚠️  WARNING: OPENAI_API_KEY NOT FOUND")
+            print("The script is running in STUB MODE (using placeholder content).")
+            print("\nTo use real AI content locally, choose one:")
+            print("  1. Temporary (current session only):")
+            print("     export OPENAI_API_KEY=\"your_actual_key_here\"")
+            print("  2. Permanent (all future sessions):")
+            print("     Add 'export OPENAI_API_KEY=\"your_actual_key_here\"' to your ~/.zshrc")
+            print("="*60 + "\n")
+        
         return (
             f"## {topic}\n\n"
             "_(Stub content: OPENAI_API_KEY not set, generated placeholder.)_\n\n"
@@ -72,7 +83,7 @@ def generate_with_openai(topic: str, model: str) -> str:
     }
 
     req = urllib.request.Request(
-        "https://api.openai.com/v1/chat/completions",
+        f"{BASE_URL.rstrip('/')}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Authorization": f"Bearer {api_key}",
@@ -86,9 +97,9 @@ def generate_with_openai(topic: str, model: str) -> str:
         return data["choices"][0]["message"]["content"].strip()
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace")
-        raise RuntimeError(f"OpenAI API HTTP {e.code}: {body}") from e
+        raise RuntimeError(f"LLM API HTTP {e.code} at {BASE_URL}: {body}") from e
     except Exception as e:  # noqa: BLE001
-        raise RuntimeError(f"OpenAI API call failed: {e}") from e
+        raise RuntimeError(f"LLM API call failed at {BASE_URL}: {e}") from e
 
 
 def build_markdown(topic: str, body: str, published: bool) -> str:
