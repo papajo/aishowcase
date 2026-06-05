@@ -1,0 +1,61 @@
+name: Auto-Generate Posts
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0' # Runs weekly on Sunday at midnight UTC
+
+permissions:
+  contents: write
+
+jobs:
+  generate-post:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          if [ -f pyproject.toml ]; then
+            pip install -e .
+          fi
+
+      - name: Run autogen script
+        run: python autogen.py
+        continue-on-error: true
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          if git diff --quiet; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push generated posts
+        if: steps.git-check.outputs.has_changes == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "chore: auto-generate posts [automated]"
+          git push
+
+      - name: No changes detected
+        if: steps.git-check.outputs.has_changes == 'false'
+        run: echo "No changes generated in this run"

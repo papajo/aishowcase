@@ -1,0 +1,387 @@
+
+=== DIRECTORY TREE (max depth 3, source files only) ===
+.env
+.env.local
+.gitignore
+AGENTS.md
+CLAUDE.md
+DEPLOYMENT.md
+LOCAL-SETUP.md
+README.md
+TODOs.md
+app
+app/.env
+app/.env.local
+app/.gitignore
+app/AGENTS.md
+app/CLAUDE.md
+app/DEPLOYMENT.md
+app/LOCAL-SETUP.md
+app/README.md
+app/about
+app/about/page.tsx
+app/admin
+app/admin/journal
+app/admin/journal/JournalForm.tsx
+app/admin/journal/JournalList.tsx
+app/admin/journal/[id]
+app/admin/journal/new
+app/admin/journal/page.tsx
+app/admin/layout.tsx
+app/admin/page.tsx
+app/admin/projects
+app/admin/projects/ProjectForm.tsx
+app/admin/projects/ProjectsList.tsx
+app/admin/projects/[id]
+app/admin/projects/new
+app/admin/projects/page.tsx
+app/admin/tools
+app/admin/tools/ToolForm.tsx
+app/admin/tools/ToolsList.tsx
+app/admin/tools/[id]
+app/admin/tools/new
+app/admin/tools/page.tsx
+app/api
+app/api/admin
+app/api/admin/journal
+app/api/admin/projects
+app/api/admin/tools
+app/api/contact
+app/api/contact/route.ts
+app/api/newsletter
+app/api/newsletter/route.ts
+app/api/reviews
+app/api/reviews/route.ts
+app/contact
+app/contact/page.tsx
+app/error.tsx
+app/favicon.ico
+app/feed.xml
+app/feed.xml/route.ts
+app/globals.css
+app/journal
+app/journal/[slug]
+app/journal/[slug]/page.tsx
+app/journal/page.tsx
+app/layout.tsx
+app/loading.tsx
+app/next-env.d.ts
+app/not-found.tsx
+app/page.tsx
+app/projects
+app/projects/[slug]
+app/projects/[slug]/page.tsx
+app/projects/page.tsx
+app/tools
+app/tools/[slug]
+app/tools/[slug]/page.tsx
+app/tools/page.tsx
+app/tsconfig.tsbuildinfo
+components
+components/journal
+components/journal/PostCard.tsx
+components/layout
+components/layout/MobileNav.tsx
+components/layout/Sidebar.tsx
+components/projects
+components/projects/ProjectCard.tsx
+components/shared
+components/shared/HoverEffect.tsx
+components/shared/MDXContent.tsx
+components/shared/Motion.tsx
+components/shared/NewsletterSignup.tsx
+components/shared/ScrollReveal.tsx
+components/shared/Skeletons.tsx
+components/shared/ThemeToggle.tsx
+components/tools
+components/tools/ReviewCard.tsx
+components/tools/ToolCard.tsx
+components/tools/ToolsPageClient.tsx
+components/ui
+components/ui/badge.tsx
+components/ui/button.tsx
+components/ui/card.tsx
+components/ui/input.tsx
+components/ui/skeleton.tsx
+components/ui/sonner.tsx
+components.json
+docs
+docs/codebase
+docs/codebase/.codebase-scan.txt
+eslint.config.mjs
+initial-project.md
+lib
+lib/admin-auth.ts
+lib/admin-client.ts
+lib/db.ts
+lib/email.ts
+lib/utils.ts
+next-env.d.ts
+next-sitemap.config.js
+next.config.ts
+package-lock.json
+package.json
+postcss.config.mjs
+prisma
+prisma/migrations
+prisma/migrations/20260604184227_init
+prisma/migrations/20260604184227_init/migration.sql
+prisma/migrations/migration_lock.toml
+prisma/schema.prisma
+prisma/seed.ts
+prisma.config.ts
+public
+public/file.svg
+public/globe.svg
+public/next.svg
+public/robots.txt
+public/sitemap-0.xml
+public/sitemap.xml
+public/vercel.svg
+public/window.svg
+tsconfig.json
+vercel.json
+
+=== STACK DETECTION (manifest files) ===
+
+--- package-lock.json ---
+{
+  "name": "app",
+  "version": "0.1.0",
+  "lockfileVersion": 3,
+  "requires": true,
+  "packages": {
+    "": {
+      "name": "app",
+      "version": "0.1.0",
+      "hasInstallScript": true,
+      "dependencies": {
+        "@base-ui/react": "^1.5.0",
+        "@prisma/adapter-pg": "^7.8.0",
+        "@prisma/client": "^7.8.0",
+        "@vercel/analytics": "^2.0.1",
+        "@vercel/speed-insights": "^2.0.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "framer-motion": "^12.40.0",
+        "lucide-react": "^1.17.0",
+        "next": "16.2.7",
+        "next-mdx-remote": "^6.0.0",
+        "next-sitemap": "^4.2.3",
+        "next-themes": "^0.4.6",
+        "pg": "^8.21.0",
+        "prisma": "^7.8.0",
+        "react": "19.2.4",
+        "react-dom": "19.2.4",
+        "react-markdown": "^10.1.0",
+        "rehype-highlight": "^7.0.2",
+        "rehype-slug": "^6.0.0",
+        "remark-gfm": "^4.0.1",
+        "resend": "^6.12.4",
+        "shadcn": "^4.10.0",
+        "sonner": "^2.0.7",
+        "tailwind-merge": "^3.6.0",
+        "tw-animate-css": "^1.4.0",
+        "zod": "^4.4.3"
+      },
+      "devDependencies": {
+        "@tailwindcss/postcss": "^4",
+        "@types/node": "^20",
+        "@types/pg": "^8.20.0",
+        "@types/react": "^19",
+        "@types/react-dom": "^19",
+        "dotenv": "^17.4.2",
+        "eslint": "^9",
+        "eslint-config-next": "16.2.7",
+        "tailwindcss": "^4",
+        "tsx": "^4.22.4",
+        "typescript": "^5"
+      }
+    },
+    "node_modules/@alloc/quick-lru": {
+      "version": "5.2.0",
+      "resolved": "https://registry.npmjs.org/@alloc/quick-lru/-/quick-lru-5.2.0.tgz",
+      "integrity": "sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==",
+      "dev": true,
+      "license": "MIT",
+      "engines": {
+        "node": ">=10"
+      },
+      "funding": {
+        "url": "https://github.com/sponsors/sindresorhus"
+      }
+    },
+    "node_modules/@babel/code-frame": {
+      "version": "7.29.7",
+      "resolved": "https://registry.npmjs.org/@babel/code-frame/-/code-frame-7.29.7.tgz",
+      "integrity": "sha512-Aup7aUOfpbAUg2ROOJN6Iw5f9DMBlzu0mIkm/malLQFN/YQgO48wCj0Kxa3sEHJvPVFg7siR+qRInwXd2qhQKw==",
+      "license": "MIT",
+      "dependencies": {
+        "@babel/helper-validator-identifier": "^7.29.7",
+        "js-tokens": "^4.0.0",
+        "picocolors": "^1.1.1"
+      },
+      "engines": {
+        "node": ">=6.9.0"
+      }
+    },
+
+[TRUNCATED] Showing first 80 of 13873 lines.
+--- package.json ---
+{
+  "name": "app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build && next-sitemap",
+    "postinstall": "prisma generate",
+    "start": "next start",
+    "lint": "eslint",
+    "db:migrate": "npx prisma migrate dev",
+    "db:push": "npx prisma db push",
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:studio": "npx prisma studio",
+    "db:generate": "npx prisma generate",
+    "db:reset": "npx prisma migrate reset"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.5.0",
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.40.0",
+    "lucide-react": "^1.17.0",
+    "next": "16.2.7",
+    "next-mdx-remote": "^6.0.0",
+    "next-sitemap": "^4.2.3",
+    "next-themes": "^0.4.6",
+    "pg": "^8.21.0",
+    "prisma": "^7.8.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "rehype-highlight": "^7.0.2",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "resend": "^6.12.4",
+    "shadcn": "^4.10.0",
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.6.0",
+    "tw-animate-css": "^1.4.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.20.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.4.2",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.7",
+    "tailwindcss": "^4",
+    "tsx": "^4.22.4",
+    "typescript": "^5"
+  }
+}
+
+
+=== ENTRY POINTS ===
+No common entry points found. Check 'main' or 'scripts.start' in manifest files above.
+
+=== LINTING AND FORMATTING CONFIG ===
+Found: eslint.config.mjs
+Found: tsconfig.json
+
+=== ENVIRONMENT VARIABLE TEMPLATES ===
+No .env.example or .env.template found. Identify required environment variables by searching the code and config for environment variable reads.
+
+=== TODO / FIXME / HACK (production code only, test dirs excluded) ===
+None found.
+
+=== GIT RECENT COMMITS (last 20) ===
+44604eb chore: replace placeholder name with PJ
+047dc82 fix: use static import for PrismaPg adapter, add error logging
+98ad75c fix: add vercel.json with explicit framework config
+5b94f48 fix: flatten project — Next.js at repo root, set Vercel root to /
+8c0eb14 fix: clean up duplicate root files — app/ is the project root
+64d99e9 fix: move routes into app/app/ for Next.js App Router
+496f79f fix: remove duplicate nested app directory
+f66c1e0 fix: remove conflicting vercel.json
+22927a7 fix: add vercel.json for root directory config
+a40576b fix: Vercel deployment compatibility
+0591a15 feat: Vercel Analytics, RSS feed, deployment guide
+9cf3651 feat: admin dashboard with CRUD management
+ffd1f81 feat: email integration with Resend
+8e249cf feat: animations, hover effects, scroll reveals, theme transitions
+b796b9f feat: SEO metadata, sitemap, robots.txt, loading states, error boundaries
+88f342b feat: full-stack AI showcase with Next.js 14, Prisma/PostgreSQL, and dark theme
+6d3ba33 Initial commit from Create Next App
+
+=== HIGH-CHURN FILES (last 90 days, top 20) ===
+   8 package.json
+   6 app/layout.tsx
+   6 package-lock.json
+   5 app/page.tsx
+   5 lib/email.ts
+   5 lib/db.ts
+   4 app/about/page.tsx
+   4 public/robots.txt
+   4 public/sitemap-0.xml
+   4 public/sitemap.xml
+   4 app/globals.css
+   4 components/journal/PostCard.tsx
+   4 components/projects/ProjectCard.tsx
+   4 components/shared/ThemeToggle.tsx
+   4 components/tools/ToolCard.tsx
+   4 components/tools/ToolsPageClient.tsx
+   4 next.config.ts
+   3 vercel.json
+   3 app/admin/journal/JournalForm.tsx
+   3 app/admin/journal/JournalList.tsx
+
+=== MONOREPO SIGNALS ===
+No monorepo signals detected.
+
+=== CODE METRICS ===
+Total files scanned: 107
+Total lines of code: 19919
+
+Files by language:
+  TypeScript/React: 50
+  Other: 36
+  TypeScript: 20
+  JavaScript: 1
+
+Top 10 largest files:
+package-lock.json: 487.7KB
+app/tsconfig.tsbuildinfo: 156.1KB
+app/favicon.ico: 25.3KB
+prisma/seed.ts: 22.2KB
+app/admin/projects/ProjectForm.tsx: 10.8KB
+app/admin/journal/JournalForm.tsx: 6.4KB
+lib/email.ts: 6.4KB
+app/admin/tools/ToolForm.tsx: 6.3KB
+app/about/page.tsx: 5.9KB
+app/admin/layout.tsx: 5.5KB
+
+=== CI/CD PIPELINES ===
+No CI/CD pipelines detected.
+
+=== CONTAINERS & ORCHESTRATION ===
+No containerization configs detected.
+
+=== SECURITY & COMPLIANCE ===
+No security configs detected.
+
+=== PERFORMANCE & TESTING ===
+No performance testing configs detected.
+
+=== SCAN COMPLETE ===
