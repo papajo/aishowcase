@@ -8,17 +8,18 @@ import { motion } from "framer-motion"
 
 interface PostCardProps {
   post: {
-    id: string
+    id?: string
     title: string
     slug: string
     excerpt: string
     tags: string[]
-    publishedAt: Date
+    publishedAt?: Date
+    date?: string | Date
   }
 }
 
 export function PostCard({ post }: PostCardProps) {
-  const date = new Date(post.publishedAt)
+  const date = new Date(post.publishedAt || post.date || new Date())
   const formattedDate = date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
