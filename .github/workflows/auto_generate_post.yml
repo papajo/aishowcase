@@ -1,27 +1,24 @@
 name: Auto-Generate Posts
-
 on:
   workflow_dispatch:
     inputs:
       topic:
-        description: 'Topic or AI tool name for the post'
+        description: "Topic or AI tool name for the post"
         required: true
-        default: 'latest AI coding assistants worth trying'
+        default: "latest AI coding assistants worth trying"
       publish:
-        description: 'Publish immediately (true) or save as draft (false)'
+        description: "Publish immediately (true) or save as draft (false)"
         required: false
-        default: 'true'
+        default: "true"
         type: choice
         options:
-          - 'true'
-          - 'false'
-  
+          - "true"
+          - "false"
 permissions:
   contents: write
 jobs:
   generate-post:
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -30,8 +27,8 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.12'
-          cache: 'pip'
+          python-version: "3.12"
+          cache: "pip"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -40,6 +37,7 @@ jobs:
           fi
       - name: Run autogen script
         env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
         run: python scripts/auto_generate_post.py --topic "${{ github.event.inputs.topic }}" --publish ${{ github.event.inputs.publish }} --force true
