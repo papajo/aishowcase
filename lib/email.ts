@@ -8,8 +8,7 @@ function getResend() {
   return import("resend").then(({ Resend }) => new Resend(apiKey));
 }
 
-const FROM_EMAIL =
-  process.env.FROM_EMAIL || "noreply@aishowcase-one.vercel.app";
+const FROM_EMAIL = process.env.FROM_EMAIL || "onboarding@resend.dev";
 const TO_EMAIL = process.env.CONTACT_EMAIL || "joshipv2@gmail.com";
 
 export async function sendWelcomeEmail(email: string) {
