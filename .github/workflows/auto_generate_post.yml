@@ -2,9 +2,7 @@ name: Auto-Generate Posts
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 12 * * 1' # Runs weekly on Monday at 12:00 UTC
-
+  
 permissions:
   contents: write
 
