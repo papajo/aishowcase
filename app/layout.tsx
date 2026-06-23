@@ -1,24 +1,24 @@
-import type { Metadata } from "next"
-import { Inter, JetBrains_Mono } from "next/font/google"
-import { ThemeProvider } from "next-themes"
-import { Analytics } from "@vercel/analytics/react"
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Sidebar } from "@/components/layout/Sidebar"
-import { MobileNav } from "@/components/layout/MobileNav"
-import { Toaster } from "sonner"
-import "./globals.css"
+import type { Metadata } from "next";
+import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { MobileNav } from "@/components/layout/MobileNav";
+import { Toaster } from "sonner";
+import "./globals.css";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-sans",
-})
+});
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-})
+});
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.dev"
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.qzz.io";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -78,12 +78,12 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -107,9 +107,7 @@ export default function RootLayout({
         >
           <div className="flex min-h-screen">
             <Sidebar />
-            <main className="flex-1 pb-20 md:pb-0 md:ml-64">
-              {children}
-            </main>
+            <main className="flex-1 pb-20 md:pb-0 md:ml-64">{children}</main>
             <MobileNav />
           </div>
           <Toaster richColors position="bottom-right" />
@@ -118,5 +116,5 @@ export default function RootLayout({
         <SpeedInsights />
       </body>
     </html>
-  )
+  );
 }

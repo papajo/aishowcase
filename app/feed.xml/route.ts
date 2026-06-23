@@ -1,21 +1,22 @@
-import { prisma } from "@/lib/db"
-import { NextResponse } from "next/server"
+import { prisma } from "@/lib/db";
+import { NextResponse } from "next/server";
 
 export async function GET() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.dev"
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.qzz.io";
 
-  let posts: any[] = []
-  let projects: any[] = []
+  let posts: any[] = [];
+  let projects: any[] = [];
 
   try {
     posts = await prisma.dailyPost.findMany({
       orderBy: { publishedAt: "desc" },
       take: 20,
-    })
+    });
     projects = await prisma.project.findMany({
       orderBy: { order: "asc" },
       take: 10,
-    })
+    });
   } catch (e) {
     // Database not available
   }
@@ -38,7 +39,7 @@ export async function GET() {
       <link>${siteUrl}/journal/${post.slug}</link>
       <guid isPermaLink="true">${siteUrl}/journal/${post.slug}</guid>
       <pubDate>${new Date(post.publishedAt).toUTCString()}</pubDate>
-    </item>`
+    </item>`,
       )
       .join("")}
     ${projects
@@ -50,18 +51,18 @@ export async function GET() {
       <link>${siteUrl}/projects/${project.slug}</link>
       <guid isPermaLink="true">${siteUrl}/projects/${project.slug}</guid>
       <pubDate>${new Date(project.createdAt).toUTCString()}</pubDate>
-    </item>`
+    </item>`,
       )
       .join("")}
   </channel>
-</rss>`
+</rss>`;
 
   return new NextResponse(rss, {
     headers: {
       "Content-Type": "application/xml",
       "Cache-Control": "public, max-age=3600, stale-while-revalidate",
     },
-  })
+  });
 }
 
 function escapeXml(str: string): string {
@@ -70,5 +71,5 @@ function escapeXml(str: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
+    .replace(/'/g, "&apos;");
 }
