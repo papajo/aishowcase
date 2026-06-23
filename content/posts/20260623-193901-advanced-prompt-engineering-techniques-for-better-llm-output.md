@@ -13,6 +13,8 @@ One of the most powerful techniques in prompt engineering is providing context. 
 
 Additionally, specifying the format of the expected output can significantly improve results. Whether you need a bulleted list, a formal essay, or a conversational tone, stating your preferences clearly helps the model generate responses that align with your expectations.
 
+---
+
 ### Use Examples and Iterative Refinement
 
 Another effective strategy is to use examples in your prompts. By showcasing what you consider a good response, you can steer the model toward similar outputs. For example, if you want a creative story, you might provide a brief excerpt from a story you admire. This not only sets the tone but also clarifies the style you’re aiming for.
