@@ -42,6 +42,46 @@ DRAFTS_DIR = os.path.join(CONTENT_DIR, "drafts")
 POSTS_DIR = os.path.join(CONTENT_DIR, "posts")
 
 
+def get_existing_topics() -> set[str]:
+    """Extract titles from existing published posts to detect duplicates."""
+    topics = set()
+    for d in [POSTS_DIR, DRAFTS_DIR]:
+        if not os.path.isdir(d):
+            continue
+        for fn in os.listdir(d):
+            if not fn.endswith(".md"):
+                continue
+            path = os.path.join(d, fn)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.startswith("title:"):
+                            title = line.split(":", 1)[1].strip().strip('"').strip("'")
+                            topics.add(title.lower())
+                            break
+            except Exception:
+                pass
+    return topics
+
+
+def is_duplicate(topic: str, existing: set[str]) -> bool:
+    """Check if a topic is too similar to an existing post title."""
+    t = topic.lower().strip()
+    if t in existing:
+        return True
+    # Check for substring overlap (handles "X vs Y" vs "X" scenarios)
+    for ex in existing:
+        if len(t) > 5 and len(ex) > 5:
+            # If 70%+ of words overlap, consider it a duplicate
+            t_words = set(t.split())
+            e_words = set(ex.split())
+            if t_words and e_words:
+                overlap = len(t_words & e_words) / max(len(t_words), len(e_words))
+                if overlap >= 0.7:
+                    return True
+    return False
+
+
 def slugify(text: str) -> str:
     text = text.lower().strip()
     text = re.sub(r"[^a-z0-9\s-]", "", text)
@@ -168,18 +208,137 @@ def _str2bool(v: str) -> bool:
     return str(v).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def find_post_by_topic(topic: str) -> str | None:
+    """Find a post file path by matching its title."""
+    t = topic.lower().strip()
+    for d in [POSTS_DIR, DRAFTS_DIR]:
+        if not os.path.isdir(d):
+            continue
+        for fn in os.listdir(d):
+            if not fn.endswith(".md"):
+                continue
+            path = os.path.join(d, fn)
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    for line in f:
+                        if line.startswith("title:"):
+                            title = line.split(":", 1)[1].strip().strip('"').strip("'")
+                            if title.lower() == t:
+                                return path
+                            break
+            except Exception:
+                pass
+    return None
+
+
+def rename_post(old_topic: str, new_topic: str) -> bool:
+    """Rename a post's title in its frontmatter."""
+    path = find_post_by_topic(old_topic)
+    if not path:
+        print(f"ERROR: No post found with title: {old_topic!r}")
+        return False
+
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Replace the title line
+    old_line = f'title: "{old_topic}"'
+    new_line = f'title: "{new_topic}"'
+    if old_line not in content:
+        # Try without quotes
+        old_line = f"title: '{old_topic}'"
+        new_line = f"title: '{new_topic}'"
+    if old_line not in content:
+        # Try bare
+        old_line = f"title: {old_topic}"
+        new_line = f"title: {new_topic}"
+
+    if old_line in content:
+        content = content.replace(old_line, new_line, 1)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+        print(f"Renamed: {old_topic!r} → {new_topic!r}")
+        print(f"File: {path}")
+        return True
+
+    print(f"ERROR: Could not find title line in {path}")
+    return False
+
+
+def list_posts() -> None:
+    """List all existing posts with their titles."""
+    print("Existing posts:\n")
+    for d in [POSTS_DIR, DRAFTS_DIR]:
+        if not os.path.isdir(d):
+            continue
+        label = "PUBLISHED" if d == POSTS_DIR else "DRAFTS"
+        found = False
+        for fn in sorted(os.listdir(d)):
+            if not fn.endswith(".md"):
+                continue
+            found = True
+            path = os.path.join(d, fn)
+            with open(path, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("title:"):
+                        title = line.split(":", 1)[1].strip().strip('"').strip("'")
+                        print(f"  [{label}] {title}")
+                        print(f"         {fn}")
+                        break
+        if not found:
+            print(f"  [{label}] (none)")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Auto-generate a draft journal post.")
     parser.add_argument(
-        "--topic", required=True, help="Topic or AI tool name for the post."
+        "--topic", required=False, help="Topic or AI tool name for the post."
     )
     parser.add_argument(
         "--publish", default="false", help="true/false: mark the draft published."
     )
     parser.add_argument("--model", default=DEFAULT_MODEL, help="LLM model name.")
+    parser.add_argument(
+        "--force", default="false", help="true/false: skip duplicate check."
+    )
+    parser.add_argument(
+        "--list", action="store_true", help="List all existing posts and exit."
+    )
+    parser.add_argument(
+        "--rename",
+        nargs=2,
+        metavar=("OLD_TITLE", "NEW_TITLE"),
+        help='Rename a post: --rename "Old Title" "New Title"',
+    )
     args = parser.parse_args(argv)
 
+    # List mode
+    if args.list:
+        list_posts()
+        return 0
+
+    # Rename mode
+    if args.rename:
+        old, new = args.rename
+        return 0 if rename_post(old, new) else 1
+
+    # Generate mode requires --topic
+    if not args.topic:
+        parser.error("--topic is required (or use --list / --rename)")
+
     published = _str2bool(args.publish)
+    force = _str2bool(args.force)
+
+    # Check for duplicates unless --force is set
+    if not force:
+        existing = get_existing_topics()
+        if is_duplicate(args.topic, existing):
+            print(f"ERROR: A post with a similar title already exists: {args.topic!r}")
+            print("Existing posts:")
+            for t in sorted(existing):
+                print(f"  - {t}")
+            print("\nUse --force true to override, or choose a different topic.")
+            return 1
 
     print(
         f"Generating post for topic: {args.topic!r} (model={args.model}, publish={published})"
