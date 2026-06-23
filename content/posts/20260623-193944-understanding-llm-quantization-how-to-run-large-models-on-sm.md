@@ -11,6 +11,8 @@ In the world of artificial intelligence, large language models (LLMs) have made 
 
 Quantization is the process of reducing the precision of the numbers used in a model’s computations. By converting floating-point numbers to lower-precision formats, such as integers, the model's size and computational requirements are significantly reduced. This means that large models can be run on devices with limited processing power and memory, such as smartphones or edge devices.
 
+---
+
 ### Key Benefits of Quantization
 
 1. **Reduced Resource Consumption**: By employing quantization, the memory footprint of large models can be shrunk dramatically. This allows for faster inference times and less energy consumption, making it feasible to run sophisticated AI applications on smaller hardware.
