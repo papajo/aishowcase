@@ -1,22 +1,23 @@
 function getResend() {
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
-    return null
+    return null;
   }
-  
+
   // Dynamic import to avoid build-time errors
-  return import("resend").then(({ Resend }) => new Resend(apiKey))
+  return import("resend").then(({ Resend }) => new Resend(apiKey));
 }
 
-const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@yourdomain.com"
-const TO_EMAIL = process.env.CONTACT_EMAIL || "hello@yourdomain.com"
+const FROM_EMAIL =
+  process.env.FROM_EMAIL || "noreply@aishowcase-one.vercel.app";
+const TO_EMAIL = process.env.CONTACT_EMAIL || "joshipv2@gmail.com";
 
 export async function sendWelcomeEmail(email: string) {
   try {
-    const resend = await getResend()
+    const resend = await getResend();
     if (!resend) {
-      console.warn("Email service not configured, skipping welcome email")
-      return { success: true }
+      console.warn("Email service not configured, skipping welcome email");
+      return { success: true };
     }
 
     await resend.emails.send({
@@ -54,11 +55,11 @@ export async function sendWelcomeEmail(email: string) {
         </body>
         </html>
       `,
-    })
-    return { success: true }
+    });
+    return { success: true };
   } catch (error) {
-    console.error("Failed to send welcome email:", error)
-    return { success: false, error }
+    console.error("Failed to send welcome email:", error);
+    return { success: false, error };
   }
 }
 
@@ -67,15 +68,15 @@ export async function sendContactEmail({
   email,
   message,
 }: {
-  name: string
-  email: string
-  message: string
+  name: string;
+  email: string;
+  message: string;
 }) {
   try {
-    const resend = await getResend()
+    const resend = await getResend();
     if (!resend) {
-      console.warn("Email service not configured, skipping contact email")
-      return { success: true }
+      console.warn("Email service not configured, skipping contact email");
+      return { success: true };
     }
 
     await resend.emails.send({
@@ -111,11 +112,11 @@ export async function sendContactEmail({
         </body>
         </html>
       `,
-    })
-    return { success: true }
+    });
+    return { success: true };
   } catch (error) {
-    console.error("Failed to send contact email:", error)
-    return { success: false, error }
+    console.error("Failed to send contact email:", error);
+    return { success: false, error };
   }
 }
 
@@ -123,14 +124,14 @@ export async function sendAutoReply({
   name,
   email,
 }: {
-  name: string
-  email: string
+  name: string;
+  email: string;
 }) {
   try {
-    const resend = await getResend()
+    const resend = await getResend();
     if (!resend) {
-      console.warn("Email service not configured, skipping auto-reply")
-      return { success: true }
+      console.warn("Email service not configured, skipping auto-reply");
+      return { success: true };
     }
 
     await resend.emails.send({
@@ -171,10 +172,10 @@ export async function sendAutoReply({
         </body>
         </html>
       `,
-    })
-    return { success: true }
+    });
+    return { success: true };
   } catch (error) {
-    console.error("Failed to send auto-reply:", error)
-    return { success: false, error }
+    console.error("Failed to send auto-reply:", error);
+    return { success: false, error };
   }
 }

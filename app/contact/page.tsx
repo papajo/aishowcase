@@ -1,43 +1,45 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Send, Code, Globe, Mail } from "lucide-react"
-import { toast } from "sonner"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Send, Code, Globe, Mail } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ContactPage() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
+    e.preventDefault();
+    setLoading(true);
 
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, message }),
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (res.ok) {
-        toast.success("Message sent!", { description: "I'll get back to you soon." })
-        setName("")
-        setEmail("")
-        setMessage("")
+        toast.success("Message sent!", {
+          description: "I'll get back to you soon.",
+        });
+        setName("");
+        setEmail("");
+        setMessage("");
       } else {
-        toast.error("Error", { description: data.error })
+        toast.error("Error", { description: data.error });
       }
     } catch {
-      toast.error("Error", { description: "Something went wrong" })
+      toast.error("Error", { description: "Something went wrong" });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -54,19 +56,27 @@ export default function ContactPage() {
           <CardContent className="p-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label htmlFor="name" className="text-sm font-medium mb-1.5 block">
+                <label
+                  htmlFor="name"
+                  className="text-sm font-medium mb-1.5 block"
+                >
                   Name
                 </label>
                 <Input
                   id="name"
                   placeholder="Your name"
                   value={name}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setName(e.target.value)
+                  }
                   required
                 />
               </div>
               <div>
-                <label htmlFor="email" className="text-sm font-medium mb-1.5 block">
+                <label
+                  htmlFor="email"
+                  className="text-sm font-medium mb-1.5 block"
+                >
                   Email
                 </label>
                 <Input
@@ -74,19 +84,26 @@ export default function ContactPage() {
                   type="email"
                   placeholder="you@example.com"
                   value={email}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    setEmail(e.target.value)
+                  }
                   required
                 />
               </div>
               <div>
-                <label htmlFor="message" className="text-sm font-medium mb-1.5 block">
+                <label
+                  htmlFor="message"
+                  className="text-sm font-medium mb-1.5 block"
+                >
                   Message
                 </label>
                 <textarea
                   id="message"
                   placeholder="Your message..."
                   value={message}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setMessage(e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setMessage(e.target.value)
+                  }
                   required
                   rows={5}
                   className="w-full rounded-md border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -110,7 +127,7 @@ export default function ContactPage() {
         <div className="space-y-4">
           <h2 className="text-xl font-semibold mb-4">Connect With Me</h2>
           <a
-            href="https://github.com/yourusername"
+            href="https://github.com/papajo"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -127,7 +144,7 @@ export default function ContactPage() {
             </Card>
           </a>
           <a
-            href="https://linkedin.com/in/yourusername"
+            href="https://www.linkedin.com/in/pajo"
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -149,7 +166,7 @@ export default function ContactPage() {
               <div>
                 <div className="font-medium">Email</div>
                 <div className="text-sm text-muted-foreground">
-                  hello@yourdomain.com
+                  joshipv2@gmail.com
                 </div>
               </div>
             </CardContent>
@@ -157,5 +174,5 @@ export default function ContactPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
