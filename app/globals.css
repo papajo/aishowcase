@@ -151,3 +151,101 @@
     text-wrap: balance;
   }
 }
+
+/* Category accent colors */
+:root {
+  --cat-llms: oklch(0.65 0.2 265);
+  --cat-vector-dbs: oklch(0.65 0.18 150);
+  --cat-frameworks: oklch(0.7 0.16 50);
+  --cat-agents: oklch(0.65 0.2 340);
+  --cat-ides: oklch(0.7 0.15 195);
+  --cat-deployment: oklch(0.75 0.15 85);
+  --cat-evaluation: oklch(0.65 0.15 175);
+}
+
+.dark {
+  --cat-llms: oklch(0.7 0.2 265);
+  --cat-vector-dbs: oklch(0.7 0.18 150);
+  --cat-frameworks: oklch(0.75 0.16 50);
+  --cat-agents: oklch(0.7 0.2 340);
+  --cat-ides: oklch(0.75 0.15 195);
+  --cat-deployment: oklch(0.8 0.15 85);
+  --cat-evaluation: oklch(0.7 0.15 175);
+}
+
+/* Glow effect for featured cards */
+.glow-card {
+  position: relative;
+}
+.glow-card::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    var(--cat-llms),
+    var(--cat-frameworks),
+    var(--cat-agents)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+  filter: blur(12px);
+}
+.glow-card:hover::before {
+  opacity: 0.4;
+}
+
+/* Gradient border on hover */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, var(--cat-llms), var(--cat-frameworks));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+.gradient-border:hover::after {
+  opacity: 1;
+}
+
+/* Featured hero gradient */
+.hero-gradient {
+  background: linear-gradient(
+    135deg,
+    oklch(0.145 0 0) 0%,
+    oklch(0.18 0.02 265) 50%,
+    oklch(0.145 0 0) 100%
+  );
+}
+.hero-gradient-light {
+  background: linear-gradient(
+    135deg,
+    oklch(0.97 0 0) 0%,
+    oklch(0.92 0.02 265) 50%,
+    oklch(0.97 0 0) 100%
+  );
+}
+
+/* Logo glow */
+.logo-glow {
+  filter: drop-shadow(0 0 8px oklch(0.7 0.2 265 / 0.3));
+}
+
+/* Scrollbar styling */
+.tools-scroll::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+}
