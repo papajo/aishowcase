@@ -139,7 +139,10 @@ def generate_with_openai(topic: str, model: str) -> str:
         "temperature": 0.7,
     }
 
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "auto-generate-post/1.0",
+    }
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
