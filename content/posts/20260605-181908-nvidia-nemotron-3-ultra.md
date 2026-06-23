@@ -11,6 +11,8 @@ NVIDIA has once again pushed the boundaries of AI innovation with the introducti
 
 One of the standout features of the Nemotron 3 Ultra is its exceptional performance. With advanced tensor cores and optimized architecture, it can process massive datasets faster than ever before. This means that developers and researchers can train models in a fraction of the time previously required, significantly accelerating the pace of innovation in AI research and applications.
 
+---
+
 ### Enhanced Flexibility
 
 The Nemotron 3 Ultra also boasts remarkable flexibility. It supports a wide range of machine learning frameworks, making it easy for users to integrate it into their existing workflows. Whether you’re developing deep learning models or engaging in data analytics, the platform adapts to your needs, allowing for a seamless transition and minimizing downtime.
