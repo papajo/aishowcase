@@ -2,10 +2,22 @@ name: Auto-Generate Posts
 
 on:
   workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Topic or AI tool name for the post'
+        required: true
+        default: 'latest AI coding assistants worth trying'
+      publish:
+        description: 'Publish immediately (true) or save as draft (false)'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
   
 permissions:
   contents: write
-
 jobs:
   generate-post:
     runs-on: ubuntu-latest
@@ -15,28 +27,23 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
           cache: 'pip'
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f scripts/requirements.txt ]; then
             pip install -r scripts/requirements.txt
           fi
-
       - name: Run autogen script
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
-          ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
-        run: python scripts/auto_generate_post.py --topic "a notable new AI tool worth showcasing" --publish true
+          OPENAI_BASE_URL: ${{ secrets.OPENAI_BASE_URL }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+        run: python scripts/auto_generate_post.py --topic "${{ github.event.inputs.topic }}" --publish ${{ github.event.inputs.publish }} --force true
         continue-on-error: true
-
       - name: Check for changes
         id: git-check
         run: |
@@ -45,7 +52,6 @@ jobs:
           else
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
-
       - name: Commit and push generated posts
         if: steps.git-check.outputs.has_changes == 'true'
         run: |
@@ -54,7 +60,6 @@ jobs:
           git add -A
           git commit -m "chore: auto-generate posts [automated]"
           git push
-
       - name: No changes detected
         if: steps.git-check.outputs.has_changes == 'false'
         run: echo "No changes generated in this run"
