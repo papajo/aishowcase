@@ -95,7 +95,11 @@ BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 def generate_with_openai(topic: str, model: str) -> str:
     """Call the LLM API (OpenAI or compatible). Returns markdown body. Raises on hard failure."""
     api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
+    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    is_local = "localhost" in base_url or "127.0.0.1" in base_url
+
+    # Local servers (Ollama, LM Studio) don't need an API key
+    if not api_key and not is_local:
         # If running in an interactive terminal, provide a helpful guide.
         if sys.stdout.isatty():
             print("\n" + "=" * 60)
@@ -135,13 +139,14 @@ def generate_with_openai(topic: str, model: str) -> str:
         "temperature": 0.7,
     }
 
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
     req = urllib.request.Request(
         f"{BASE_URL.rstrip('/')}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+        headers=headers,
         method="POST",
     )
     try:
