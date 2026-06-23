@@ -22,6 +22,7 @@ Env vars:
 Usage:
   python3 scripts/auto_generate_post.py --topic "Some AI tool" --publish false
 """
+
 from __future__ import annotations
 
 import argparse
@@ -34,7 +35,11 @@ import urllib.request
 import urllib.error
 
 DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-DRAFTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "content", "drafts")
+CONTENT_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "content"
+)
+DRAFTS_DIR = os.path.join(CONTENT_DIR, "drafts")
+POSTS_DIR = os.path.join(CONTENT_DIR, "posts")
 
 
 def slugify(text: str) -> str:
@@ -42,7 +47,10 @@ def slugify(text: str) -> str:
     text = re.sub(r"[^a-z0-9\s-]", "", text)
     text = re.sub(r"[\s_-]+", "-", text)
     return text.strip("-")[:60] or "post"
+
+
 BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+
 
 def generate_with_openai(topic: str, model: str) -> str:
     """Call the LLM API (OpenAI or compatible). Returns markdown body. Raises on hard failure."""
@@ -50,16 +58,18 @@ def generate_with_openai(topic: str, model: str) -> str:
     if not api_key:
         # If running in an interactive terminal, provide a helpful guide.
         if sys.stdout.isatty():
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("⚠️  WARNING: OPENAI_API_KEY NOT FOUND")
             print("The script is running in STUB MODE (using placeholder content).")
             print("\nTo use real AI content locally, choose one:")
             print("  1. Temporary (current session only):")
-            print("     export OPENAI_API_KEY=\"your_actual_key_here\"")
+            print('     export OPENAI_API_KEY="your_actual_key_here"')
             print("  2. Permanent (all future sessions):")
-            print("     Add 'export OPENAI_API_KEY=\"your_actual_key_here\"' to your ~/.zshrc")
-            print("="*60 + "\n")
-        
+            print(
+                "     Add 'export OPENAI_API_KEY=\"your_actual_key_here\"' to your ~/.zshrc"
+            )
+            print("=" * 60 + "\n")
+
         return (
             f"## {topic}\n\n"
             "_(Stub content: OPENAI_API_KEY not set, generated placeholder.)_\n\n"
@@ -76,7 +86,10 @@ def generate_with_openai(topic: str, model: str) -> str:
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a helpful technical writer for an AI tools showcase site."},
+            {
+                "role": "system",
+                "content": "You are a helpful technical writer for an AI tools showcase site.",
+            },
             {"role": "user", "content": prompt},
         ],
         "temperature": 0.7,
@@ -106,8 +119,8 @@ def build_markdown(topic: str, body: str, published: bool) -> str:
     now = _dt.datetime.now(_dt.timezone.utc)
     frontmatter = (
         "---\n"
-        f"title: \"{topic}\"\n"
-        f"date: \"{now.isoformat()}\"\n"
+        f'title: "{topic}"\n'
+        f'date: "{now.isoformat()}"\n'
         f"published: {str(published).lower()}\n"
         "source: auto_generate_post.py\n"
         "---\n\n"
@@ -115,11 +128,12 @@ def build_markdown(topic: str, body: str, published: bool) -> str:
     return frontmatter + body + "\n"
 
 
-def save_draft(topic: str, markdown: str) -> str:
-    os.makedirs(DRAFTS_DIR, exist_ok=True)
+def save_post(topic: str, markdown: str, published: bool) -> str:
+    dest = POSTS_DIR if published else DRAFTS_DIR
+    os.makedirs(dest, exist_ok=True)
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
     filename = f"{ts}-{slugify(topic)}.md"
-    path = os.path.join(DRAFTS_DIR, filename)
+    path = os.path.join(dest, filename)
     with open(path, "w", encoding="utf-8") as f:
         f.write(markdown)
     return path
@@ -156,18 +170,25 @@ def _str2bool(v: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Auto-generate a draft journal post.")
-    parser.add_argument("--topic", required=True, help="Topic or AI tool name for the post.")
-    parser.add_argument("--publish", default="false", help="true/false: mark the draft published.")
+    parser.add_argument(
+        "--topic", required=True, help="Topic or AI tool name for the post."
+    )
+    parser.add_argument(
+        "--publish", default="false", help="true/false: mark the draft published."
+    )
     parser.add_argument("--model", default=DEFAULT_MODEL, help="LLM model name.")
     args = parser.parse_args(argv)
 
     published = _str2bool(args.publish)
 
-    print(f"Generating post for topic: {args.topic!r} (model={args.model}, publish={published})")
+    print(
+        f"Generating post for topic: {args.topic!r} (model={args.model}, publish={published})"
+    )
     body = generate_with_openai(args.topic, args.model)
     markdown = build_markdown(args.topic, body, published)
-    path = save_draft(args.topic, markdown)
-    print(f"Draft saved: {path}")
+    path = save_post(args.topic, markdown, published)
+    label = "Published" if published else "Draft"
+    print(f"{label} saved: {path}")
 
     post_to_admin(args.topic, markdown, published)
     return 0
