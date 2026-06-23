@@ -96,15 +96,11 @@ def generate_with_openai(topic: str, model: str) -> str:
     """Call the LLM API (OpenAI or compatible). Returns markdown body. Raises on hard failure."""
     api_key = os.environ.get("OPENAI_API_KEY")
     base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-    # Skip API key check for local servers or any custom endpoint (not OpenAI)
-    is_custom_endpoint = (
-        "localhost" in base_url
-        or "127.0.0.1" in base_url
-        or "api.openai.com" not in base_url
-    )
+    # Only skip API key check for truly local servers
+    is_local = "localhost" in base_url or "127.0.0.1" in base_url
 
-    # Local/custom servers don't need an API key
-    if not api_key and not is_custom_endpoint:
+    # Require API key for non-local endpoints
+    if not api_key and not is_local:
         # If running in an interactive terminal, provide a helpful guide.
         if sys.stdout.isatty():
             print("\n" + "=" * 60)
