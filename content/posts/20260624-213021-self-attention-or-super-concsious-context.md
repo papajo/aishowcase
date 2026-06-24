@@ -3,6 +3,7 @@ title: "Self-Attention? Or Super-concsious Context?"
 date: "2026-06-24T21:30:21.542431+00:00"
 published: true
 source: auto_generate_post.py
+tags: "Self-Attention, Transformers, LLM, AI Architecture"
 ---
 
 ## Introduction to Self-Attention

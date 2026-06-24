@@ -1,8 +1,9 @@
 ---
-title: "What People Still Don’t Understand About AI Agents"
+title: "What People Still Don't Understand About AI Agents"
 date: "2026-06-24T16:40:11.853168+00:00"
 published: true
 source: auto_generate_post.py
+tags: "AI Agents, LLM, Productivity, Automation"
 ---
 
 ## Introduction to Misconceptions About AI Agents
