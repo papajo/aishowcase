@@ -29,10 +29,45 @@ import argparse
 import datetime as _dt
 import json
 import os
+import random
 import re
 import sys
 import urllib.request
 import urllib.error
+from tenacity import retry, stop_after_attempt, retry_if_exception_type
+
+class Gemini429Error(Exception):
+    """Exception raised strictly when Gemini/LLM API returns a 429 Resource Exhausted status."""
+    def __init__(self, message: str, model: str, url: str, raw_response: str):
+        super().__init__(message)
+        self.model = model
+        self.url = url
+        self.raw_response = raw_response
+
+def preflight_check() -> None:
+    """Pre-flight configuration check. Prints active key prefix and targets."""
+    gemini_key = os.environ.get("GEMINI_API_KEY")
+    openai_key = os.environ.get("OPENAI_API_KEY")
+    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    
+    active_key = gemini_key or openai_key
+    key_name = "GEMINI_API_KEY" if gemini_key else "OPENAI_API_KEY"
+    
+    print("\n--- PRE-FLIGHT CONFIGURATION CHECK ---")
+    if active_key:
+        masked_key = active_key[:6] + "..." if len(active_key) >= 6 else active_key
+        print(f"Active API Key ({key_name}): {masked_key}")
+    else:
+        print("Active API Key: None (Using local/stub mode)")
+        
+    is_regional = "aiplatform" in base_url or ("googleapis.com" in base_url and any(reg in base_url for reg in ["us-", "europe-", "asia-"]))
+    if is_regional:
+        print("Endpoint Confirmation: WARNING: Explicit REGIONAL cloud endpoint is being targeted.")
+    elif "googleapis.com" in base_url:
+        print("Endpoint Confirmation: GLOBAL wrapper endpoint (googleapis.com) is being targeted.")
+    else:
+        print(f"Endpoint Confirmation: Non-Google endpoint or standard OpenAI endpoint: {base_url}")
+    print("--------------------------------------\n")
 
 DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
 CONTENT_DIR = os.path.join(
@@ -148,20 +183,80 @@ def generate_with_openai(topic: str, model: str) -> str:
         headers["Authorization"] = f"Bearer {api_key}"
 
     req = urllib.request.Request(
-        f"{BASE_URL.rstrip('/')}/chat/completions",
+        f"{base_url.rstrip('/')}/chat/completions",
         data=json.dumps(payload).encode("utf-8"),
         headers=headers,
         method="POST",
     )
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        return data["choices"][0]["message"]["content"].strip()
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", "replace")
-        raise RuntimeError(f"LLM API HTTP {e.code} at {BASE_URL}: {body}") from e
-    except Exception as e:  # noqa: BLE001
-        raise RuntimeError(f"LLM API call failed at {BASE_URL}: {e}") from e
+
+    # Track attempts fresh for this call
+    attempt_tracker = {"count": 0}
+
+    def exponential_backoff_with_jitter(retry_state):
+        attempt = retry_state.attempt_number
+        delay = 2 * (2 ** (attempt - 1))
+        jitter = random.uniform(0, 1)
+        return delay + jitter
+
+    @retry(
+        retry=retry_if_exception_type(Gemini429Error),
+        wait=exponential_backoff_with_jitter,
+        stop=stop_after_attempt(4),  # 1 initial attempt + 3 retries = 4 attempts total
+        reraise=True
+    )
+    def _call_with_retry():
+        attempt_tracker["count"] += 1
+        current_attempt = attempt_tracker["count"]
+        
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            
+            # If we reached here, the request succeeded!
+            if current_attempt > 1:
+                print(f"DEBUG: 429 resolved by backoff retry #{current_attempt - 1}")
+                
+            return data["choices"][0]["message"]["content"].strip()
+            
+        except urllib.error.HTTPError as e:
+            # Read and decode the body only once, to avoid empty reads on stream
+            body = e.read().decode("utf-8", "replace")
+            
+            # Diagnostic wrapper logging
+            print("\n=== GEMINI API ERROR DIAGNOSTICS ===")
+            print(f"Model Requested: {model}")
+            print(f"Target Endpoint: {req.full_url}")
+            print(f"HTTP Status Code: {e.code}")
+            print(f"Raw Response: {body}")
+            
+            contains_limit_zero = '"limit": 0' in body or '"limit":0' in body
+            contains_quota_limit = "quota_limit" in body.lower()
+            
+            print(f"Contains 'limit: 0': {contains_limit_zero}")
+            print(f"Contains 'quota_limit': {contains_quota_limit}")
+            print("====================================\n")
+            
+            if e.code == 429:
+                raise Gemini429Error(
+                    f"429 Resource Exhausted for model {model}",
+                    model=model,
+                    url=req.full_url,
+                    raw_response=body
+                ) from e
+                
+            raise RuntimeError(f"LLM API HTTP {e.code} at {base_url}: {body}") from e
+            
+        except Exception as e:
+            if not isinstance(e, Gemini429Error):
+                print("\n=== GEMINI API UNEXPECTED ERROR DIAGNOSTICS ===")
+                print(f"Model Requested: {model}")
+                print(f"Target Endpoint: {req.full_url}")
+                print(f"Error Type: {type(e).__name__}")
+                print(f"Error Details: {e}")
+                print("==============================================\n")
+            raise
+
+    return _call_with_retry()
 
 
 def build_markdown(topic: str, body: str, published: bool) -> str:
@@ -320,6 +415,9 @@ def main(argv: list[str] | None = None) -> int:
         help='Rename a post: --rename "Old Title" "New Title"',
     )
     args = parser.parse_args(argv)
+
+    # Run preflight check
+    preflight_check()
 
     # List mode
     if args.list:
