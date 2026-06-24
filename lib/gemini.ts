@@ -66,7 +66,7 @@ export async function callGeminiWithRetry<T>(
       console.error(`HTTP Status Code: ${statusCode || "UNKNOWN"}`);
       console.error(`Raw Response: ${rawResponseStr}`);
 
-      const containsLimitZero = rawResponseStr.includes('"limit": 0') || rawResponseStr.includes('"limit":0');
+      const containsLimitZero = rawResponseStr.includes('"limit": 0') || rawResponseStr.includes('"limit":0') || rawResponseStr.includes('limit: 0') || rawResponseStr.includes('limit:0');
       const containsQuotaLimit = rawResponseStr.toLowerCase().includes("quota_limit");
 
       console.error(`Contains 'limit: 0': ${containsLimitZero}`);

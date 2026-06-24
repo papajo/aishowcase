@@ -229,7 +229,7 @@ def generate_with_openai(topic: str, model: str) -> str:
             print(f"HTTP Status Code: {e.code}")
             print(f"Raw Response: {body}")
             
-            contains_limit_zero = '"limit": 0' in body or '"limit":0' in body
+            contains_limit_zero = '"limit": 0' in body or '"limit":0' in body or 'limit: 0' in body or 'limit:0' in body
             contains_quota_limit = "quota_limit" in body.lower()
             
             print(f"Contains 'limit: 0': {contains_limit_zero}")
