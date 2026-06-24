@@ -3,6 +3,7 @@ title: "Understanding LLM Quantization: How to run large models on small hardwar
 date: "2026-06-23T19:39:44.520837+00:00"
 published: true
 source: auto_generate_post.py
+tags: "Quantization, LLM, optimization"
 ---
 
 In the world of artificial intelligence, large language models (LLMs) have made significant strides, enabling impressive capabilities in natural language processing. However, the challenge of deploying these resource-intensive models on smaller hardware often hinders their accessibility. This is where LLM quantization comes into play, offering a solution that allows for efficient model deployment without sacrificing performance.

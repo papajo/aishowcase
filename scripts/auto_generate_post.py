@@ -1,120 +1,28 @@
 #!/usr/bin/env python3
 """
-auto_generate_post.py
-
-Generate a draft journal post for the ai-showcase site using an LLM.
-
-Behavior:
-  - Generates markdown content for a given --topic via the OpenAI API.
-  - Saves the draft to content/drafts/<timestamp>-<slug>.md (with YAML frontmatter).
-  - If ADMIN_API_URL and ADMIN_API_TOKEN are set, POSTs the draft to that endpoint
-    so it can be created in the app DB for admin review.
-  - --publish controls a frontmatter "published" flag and the POST payload; default false.
-
-Designed so logic can later be reused/ported to a Next.js API route (Option 1).
-
-Env vars:
-  OPENAI_API_KEY   (required to call the LLM; if missing, runs in --dry-run-style stub mode)
-  OPENAI_MODEL     (optional, default: gpt-4o-mini)
-  ADMIN_API_URL    (optional) POST endpoint for creating drafts in the app
-  ADMIN_API_TOKEN  (optional) bearer token for ADMIN_API_URL
+Auto-generate a draft journal post using an OpenAI-compatible LLM API.
 
 Usage:
-  python3 scripts/auto_generate_post.py --topic "Some AI tool" --publish false
+  python3 scripts/auto_generate_post.py --topic "Some AI tool" [--publish true] [--model gpt-4o-mini] [--force]
+  python3 scripts/auto_generate_post.py --list
+  python3 scripts/auto_generate_post.py --rename "Old Title" "New Title"
+
+Env vars:
+  OPENAI_API_KEY    Required for LLM calls (falls back to stub mode if missing)
+  OPENAI_BASE_URL   Optional, defaults to https://api.openai.com/v1
+  OPENAI_MODEL      Optional, defaults to gpt-4o-mini
+  ADMIN_API_URL     Optional, POST endpoint for creating drafts in-app
+  ADMIN_API_TOKEN   Optional, bearer token for ADMIN_API_URL
 """
-
 from __future__ import annotations
-
-import argparse
-import datetime as _dt
-import json
-import os
-import random
-import re
-import sys
-import urllib.request
-import urllib.error
-from tenacity import retry, stop_after_attempt, retry_if_exception_type
-
-class Gemini429Error(Exception):
-    """Exception raised strictly when Gemini/LLM API returns a 429 Resource Exhausted status."""
-    def __init__(self, message: str, model: str, url: str, raw_response: str):
-        super().__init__(message)
-        self.model = model
-        self.url = url
-        self.raw_response = raw_response
-
-def preflight_check() -> None:
-    """Pre-flight configuration check. Prints active key prefix and targets."""
-    gemini_key = os.environ.get("GEMINI_API_KEY")
-    openai_key = os.environ.get("OPENAI_API_KEY")
-    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-    
-    active_key = gemini_key or openai_key
-    key_name = "GEMINI_API_KEY" if gemini_key else "OPENAI_API_KEY"
-    
-    print("\n--- PRE-FLIGHT CONFIGURATION CHECK ---")
-    if active_key:
-        masked_key = active_key[:6] + "..." if len(active_key) >= 6 else active_key
-        print(f"Active API Key ({key_name}): {masked_key}")
-    else:
-        print("Active API Key: None (Using local/stub mode)")
-        
-    is_regional = "aiplatform" in base_url or ("googleapis.com" in base_url and any(reg in base_url for reg in ["us-", "europe-", "asia-"]))
-    if is_regional:
-        print("Endpoint Confirmation: WARNING: Explicit REGIONAL cloud endpoint is being targeted.")
-    elif "googleapis.com" in base_url:
-        print("Endpoint Confirmation: GLOBAL wrapper endpoint (googleapis.com) is being targeted.")
-    else:
-        print(f"Endpoint Confirmation: Non-Google endpoint or standard OpenAI endpoint: {base_url}")
-    print("--------------------------------------\n")
+import argparse, datetime as _dt, json, os, re, sys, urllib.request, urllib.error
 
 DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-CONTENT_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "content"
-)
+BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONTENT_DIR = os.path.join(PROJECT_ROOT, "content")
 DRAFTS_DIR = os.path.join(CONTENT_DIR, "drafts")
 POSTS_DIR = os.path.join(CONTENT_DIR, "posts")
-
-
-def get_existing_topics() -> set[str]:
-    """Extract titles from existing published posts to detect duplicates."""
-    topics = set()
-    for d in [POSTS_DIR, DRAFTS_DIR]:
-        if not os.path.isdir(d):
-            continue
-        for fn in os.listdir(d):
-            if not fn.endswith(".md"):
-                continue
-            path = os.path.join(d, fn)
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    for line in f:
-                        if line.startswith("title:"):
-                            title = line.split(":", 1)[1].strip().strip('"').strip("'")
-                            topics.add(title.lower())
-                            break
-            except Exception:
-                pass
-    return topics
-
-
-def is_duplicate(topic: str, existing: set[str]) -> bool:
-    """Check if a topic is too similar to an existing post title."""
-    t = topic.lower().strip()
-    if t in existing:
-        return True
-    # Check for substring overlap (handles "X vs Y" vs "X" scenarios)
-    for ex in existing:
-        if len(t) > 5 and len(ex) > 5:
-            # If 70%+ of words overlap, consider it a duplicate
-            t_words = set(t.split())
-            e_words = set(ex.split())
-            if t_words and e_words:
-                overlap = len(t_words & e_words) / max(len(t_words), len(e_words))
-                if overlap >= 0.7:
-                    return True
-    return False
 
 
 def slugify(text: str) -> str:
@@ -124,338 +32,194 @@ def slugify(text: str) -> str:
     return text.strip("-")[:60] or "post"
 
 
-BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+def get_existing_titles() -> set[str]:
+    titles = set()
+    for d in [POSTS_DIR, DRAFTS_DIR]:
+        if not os.path.isdir(d): continue
+        for fn in os.listdir(d):
+            if not fn.endswith(".md"): continue
+            with open(os.path.join(d, fn), "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("title:"):
+                        titles.add(line.split(":", 1)[1].strip().strip('"').strip("'").lower())
+                        break
+    return titles
 
 
-def generate_with_openai(topic: str, model: str) -> str:
-    """Call the LLM API (OpenAI or compatible). Returns markdown body. Raises on hard failure."""
+def is_duplicate(topic: str, existing: set[str]) -> bool:
+    t = topic.lower().strip()
+    if t in existing: return True
+    t_words = set(t.split())
+    for ex in existing:
+        e_words = set(ex.split())
+        if t_words and e_words and len(t_words & e_words) / max(len(t_words), len(e_words)) >= 0.7:
+            return True
+    return False
+
+
+def generate_with_llm(topic: str, model: str) -> str:
     api_key = os.environ.get("OPENAI_API_KEY")
-    base_url = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-    # Only skip API key check for truly local servers
-    is_local = "localhost" in base_url or "127.0.0.1" in base_url
+    is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
 
-    # Require API key for non-local endpoints
     if not api_key and not is_local:
-        # If running in an interactive terminal, provide a helpful guide.
-        if sys.stdout.isatty():
-            print("\n" + "=" * 60)
-            print("⚠️  WARNING: OPENAI_API_KEY NOT FOUND")
-            print("The script is running in STUB MODE (using placeholder content).")
-            print("\nTo use real AI content locally, choose one:")
-            print("  1. Temporary (current session only):")
-            print('     export OPENAI_API_KEY="your_actual_key_here"')
-            print("  2. Permanent (all future sessions):")
-            print(
-                "     Add 'export OPENAI_API_KEY=\"your_actual_key_here\"' to your ~/.zshrc"
-            )
-            print("=" * 60 + "\n")
-
-        return (
-            f"## {topic}\n\n"
-            "_(Stub content: OPENAI_API_KEY not set, generated placeholder.)_\n\n"
-            f"This is a draft post about **{topic}**. Replace with real generated content.\n"
-        )
-
-    prompt = (
-        "Write a concise, engaging journal/blog post (250-400 words) in Markdown "
-        f"about the following AI tool or topic: {topic}. "
-        "Include a short intro, 2-3 key points, and a closing takeaway. "
-        "Do not include a top-level H1 title (that is handled by frontmatter)."
-    )
+        print("⚠️  OPENAI_API_KEY not set — using stub mode")
+        return f"## {topic}\n\n_(Stub content: replace with real generated content.)_\n\nThis is a draft about **{topic}**.\n"
 
     payload = {
         "model": model,
         "messages": [
-            {
-                "role": "system",
-                "content": "You are a helpful technical writer for an AI tools showcase site.",
-            },
-            {"role": "user", "content": prompt},
+            {"role": "system", "content": "You are a helpful technical writer for an AI tools showcase site."},
+            {"role": "user", "content": f"Write a concise, engaging journal/blog post (250-400 words) in Markdown about: {topic}. Include a short intro, 2-3 key points, and a closing takeaway. Do not include a top-level H1 title or frontmatter."},
         ],
         "temperature": 0.7,
     }
+    headers = {"Content-Type": "application/json", "User-Agent": "auto-generate-post/1.0"}
+    if api_key: headers["Authorization"] = f"Bearer {api_key}"
 
-    headers = {
-        "Content-Type": "application/json",
-        "User-Agent": "auto-generate-post/1.0",
-    }
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
+    req = urllib.request.Request(f"{BASE_URL.rstrip('/')}/chat/completions", data=json.dumps(payload).encode(), headers=headers, method="POST")
 
-    req = urllib.request.Request(
-        f"{base_url.rstrip('/')}/chat/completions",
-        data=json.dumps(payload).encode("utf-8"),
-        headers=headers,
-        method="POST",
-    )
-
-    # Track attempts fresh for this call
-    attempt_tracker = {"count": 0}
-
-    def exponential_backoff_with_jitter(retry_state):
-        attempt = retry_state.attempt_number
-        delay = 2 * (2 ** (attempt - 1))
-        jitter = random.uniform(0, 1)
-        return delay + jitter
-
-    @retry(
-        retry=retry_if_exception_type(Gemini429Error),
-        wait=exponential_backoff_with_jitter,
-        stop=stop_after_attempt(4),  # 1 initial attempt + 3 retries = 4 attempts total
-        reraise=True
-    )
-    def _call_with_retry():
-        attempt_tracker["count"] += 1
-        current_attempt = attempt_tracker["count"]
-        
+    for attempt in range(4):
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            
-            # If we reached here, the request succeeded!
-            if current_attempt > 1:
-                print(f"DEBUG: 429 resolved by backoff retry #{current_attempt - 1}")
-                
-            return data["choices"][0]["message"]["content"].strip()
-            
+                return json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
         except urllib.error.HTTPError as e:
-            # Read and decode the body only once, to avoid empty reads on stream
-            body = e.read().decode("utf-8", "replace")
-            
-            # Diagnostic wrapper logging
-            print("\n=== GEMINI API ERROR DIAGNOSTICS ===")
-            print(f"Model Requested: {model}")
-            print(f"Target Endpoint: {req.full_url}")
-            print(f"HTTP Status Code: {e.code}")
-            print(f"Raw Response: {body}")
-            
-            contains_limit_zero = '"limit": 0' in body or '"limit":0' in body or 'limit: 0' in body or 'limit:0' in body
-            contains_quota_limit = "quota_limit" in body.lower()
-            
-            print(f"Contains 'limit: 0': {contains_limit_zero}")
-            print(f"Contains 'quota_limit': {contains_quota_limit}")
-            print("====================================\n")
-            
-            if e.code == 429:
-                raise Gemini429Error(
-                    f"429 Resource Exhausted for model {model}",
-                    model=model,
-                    url=req.full_url,
-                    raw_response=body
-                ) from e
-                
-            raise RuntimeError(f"LLM API HTTP {e.code} at {base_url}: {body}") from e
-            
-        except Exception as e:
-            if not isinstance(e, Gemini429Error):
-                print("\n=== GEMINI API UNEXPECTED ERROR DIAGNOSTICS ===")
-                print(f"Model Requested: {model}")
-                print(f"Target Endpoint: {req.full_url}")
-                print(f"Error Type: {type(e).__name__}")
-                print(f"Error Details: {e}")
-                print("==============================================\n")
-            raise
-
-    return _call_with_retry()
+            if e.code == 429 and attempt < 3:
+                delay = 2 ** (attempt + 1) + __import__("random").uniform(0, 1)
+                print(f"429 hit, retrying in {delay:.1f}s... (attempt {attempt + 1}/3)")
+                __import__("time").sleep(delay)
+                continue
+            raise RuntimeError(f"LLM API HTTP {e.code}: {body[:200]}")
+    raise RuntimeError("Max retries exceeded")
 
 
-def build_markdown(topic: str, body: str, published: bool) -> str:
-    now = _dt.datetime.now(_dt.timezone.utc)
-    frontmatter = (
-        "---\n"
-        f'title: "{topic}"\n'
-        f'date: "{now.isoformat()}"\n'
-        f"published: {str(published).lower()}\n"
-        "source: auto_generate_post.py\n"
-        "---\n\n"
-    )
-    return frontmatter + body + "\n"
+def generate_tags_with_llm(topic: str, model: str) -> list[str]:
+    """Use LLM to generate relevant tags for a topic."""
+    api_key = os.environ.get("OPENAI_API_KEY")
+    is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
+
+    if not api_key and not is_local:
+        # Fallback: extract significant words from topic
+        words = re.sub(r"[^a-zA-Z0-9\s]", "", topic).split()
+        stopwords = {"the", "a", "an", "of", "for", "and", "or", "in", "on", "to", "is", "how", "why", "with", "from"}
+        return [w.title() for w in words if w.lower() not in stopwords and len(w) > 2][:4]
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You generate short relevant tags for blog posts. Return ONLY a comma-separated list of 3-5 tags, nothing else. Example: AI, LLM, RAG, Productivity"},
+            {"role": "user", "content": f"Generate 3-5 short tags for a blog post about: {topic}"},
+        ],
+        "temperature": 0.5,
+    }
+    headers = {"Content-Type": "application/json", "User-Agent": "auto-generate-post/1.0"}
+    if api_key: headers["Authorization"] = f"Bearer {api_key}"
+
+    req = urllib.request.Request(f"{BASE_URL.rstrip('/')}/chat/completions", data=json.dumps(payload).encode(), headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            raw = json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
+            return [t.strip() for t in raw.split(",") if t.strip()]
+    except Exception as e:
+        print(f"WARNING: Tag generation failed: {e}", file=sys.stderr)
+        words = re.sub(r"[^a-zA-Z0-9\s]", "", topic).split()
+        return [w.title() for w in words if len(w) > 2][:4]
+            body = e.read().decode("replace")
+            if e.code == 429 and attempt < 3:
+                delay = 2 ** (attempt + 1) + __import__("random").uniform(0, 1)
+                print(f"429 hit, retrying in {delay:.1f}s... (attempt {attempt + 1}/3)")
+                __import__("time").sleep(delay)
+                continue
+            raise RuntimeError(f"LLM API HTTP {e.code}: {body[:200]}")
+    raise RuntimeError("Max retries exceeded")
 
 
 def save_post(topic: str, markdown: str, published: bool) -> str:
     dest = POSTS_DIR if published else DRAFTS_DIR
     os.makedirs(dest, exist_ok=True)
     ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
-    filename = f"{ts}-{slugify(topic)}.md"
-    path = os.path.join(dest, filename)
+    path = os.path.join(dest, f"{ts}-{slugify(topic)}.md")
     with open(path, "w", encoding="utf-8") as f:
         f.write(markdown)
     return path
 
 
 def post_to_admin(topic: str, markdown: str, published: bool) -> None:
-    url = os.environ.get("ADMIN_API_URL")
-    token = os.environ.get("ADMIN_API_TOKEN")
-    if not url or not token:
-        return
-    payload = {"title": topic, "content": markdown, "published": published}
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
+    url, token = os.environ.get("ADMIN_API_URL"), os.environ.get("ADMIN_API_TOKEN")
+    if not url or not token: return
+    req = urllib.request.Request(url, data=json.dumps({"title": topic, "content": markdown, "published": published}).encode(),
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            print(f"Admin API responded: HTTP {resp.status}")
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", "replace")
-        print(f"WARNING: Admin API POST failed HTTP {e.code}: {body}", file=sys.stderr)
-    except Exception as e:  # noqa: BLE001
-        print(f"WARNING: Admin API POST failed: {e}", file=sys.stderr)
-
-
-def _str2bool(v: str) -> bool:
-    return str(v).strip().lower() in {"1", "true", "yes", "y", "on"}
-
-
-def find_post_by_topic(topic: str) -> str | None:
-    """Find a post file path by matching its title."""
-    t = topic.lower().strip()
-    for d in [POSTS_DIR, DRAFTS_DIR]:
-        if not os.path.isdir(d):
-            continue
-        for fn in os.listdir(d):
-            if not fn.endswith(".md"):
-                continue
-            path = os.path.join(d, fn)
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    for line in f:
-                        if line.startswith("title:"):
-                            title = line.split(":", 1)[1].strip().strip('"').strip("'")
-                            if title.lower() == t:
-                                return path
-                            break
-            except Exception:
-                pass
-    return None
-
-
-def rename_post(old_topic: str, new_topic: str) -> bool:
-    """Rename a post's title in its frontmatter."""
-    path = find_post_by_topic(old_topic)
-    if not path:
-        print(f"ERROR: No post found with title: {old_topic!r}")
-        return False
-
-    with open(path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    # Replace the title line
-    old_line = f'title: "{old_topic}"'
-    new_line = f'title: "{new_topic}"'
-    if old_line not in content:
-        # Try without quotes
-        old_line = f"title: '{old_topic}'"
-        new_line = f"title: '{new_topic}'"
-    if old_line not in content:
-        # Try bare
-        old_line = f"title: {old_topic}"
-        new_line = f"title: {new_topic}"
-
-    if old_line in content:
-        content = content.replace(old_line, new_line, 1)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
-        print(f"Renamed: {old_topic!r} → {new_topic!r}")
-        print(f"File: {path}")
-        return True
-
-    print(f"ERROR: Could not find title line in {path}")
-    return False
+        with urllib.request.urlopen(req, timeout=60) as resp: print(f"Admin API: HTTP {resp.status}")
+    except Exception as e: print(f"WARNING: Admin API POST failed: {e}", file=sys.stderr)
 
 
 def list_posts() -> None:
-    """List all existing posts with their titles."""
     print("Existing posts:\n")
-    for d in [POSTS_DIR, DRAFTS_DIR]:
-        if not os.path.isdir(d):
-            continue
-        label = "PUBLISHED" if d == POSTS_DIR else "DRAFTS"
+    for d, label in [(POSTS_DIR, "PUBLISHED"), (DRAFTS_DIR, "DRAFTS")]:
+        if not os.path.isdir(d): continue
         found = False
         for fn in sorted(os.listdir(d)):
-            if not fn.endswith(".md"):
-                continue
+            if not fn.endswith(".md"): continue
             found = True
-            path = os.path.join(d, fn)
-            with open(path, "r", encoding="utf-8") as f:
+            with open(os.path.join(d, fn), "r", encoding="utf-8") as f:
                 for line in f:
                     if line.startswith("title:"):
-                        title = line.split(":", 1)[1].strip().strip('"').strip("'")
-                        print(f"  [{label}] {title}")
-                        print(f"         {fn}")
+                        print(f"  [{label}] {line.split(':', 1)[1].strip().strip('\"').strip(\"'\")}")
                         break
-        if not found:
-            print(f"  [{label}] (none)")
+        if not found: print(f"  [{label}] (none)")
+
+
+def rename_post(old: str, new: str) -> bool:
+    for d in [POSTS_DIR, DRAFTS_DIR]:
+        if not os.path.isdir(d): continue
+        for fn in os.listdir(d):
+            if not fn.endswith(".md"): continue
+            path = os.path.join(d, fn)
+            with open(path, "r", encoding="utf-8") as f: content = f.read()
+            for q in ['"', "'"]:
+                old_line, new_line = f"title: {q}{old}{q}", f"title: {q}{new}{q}"
+                if old_line in content:
+                    with open(path, "w", encoding="utf-8") as f: f.write(content.replace(old_line, new_line, 1))
+                    print(f"Renamed: {old!r} → {new!r}")
+                    return True
+    print(f"ERROR: No post found with title: {old!r}")
+    return False
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Auto-generate a draft journal post.")
-    parser.add_argument(
-        "--topic", required=False, help="Topic or AI tool name for the post."
-    )
-    parser.add_argument(
-        "--publish", default="false", help="true/false: mark the draft published."
-    )
-    parser.add_argument("--model", default=DEFAULT_MODEL, help="LLM model name.")
-    parser.add_argument(
-        "--force", default="false", help="true/false: skip duplicate check."
-    )
-    parser.add_argument(
-        "--list", action="store_true", help="List all existing posts and exit."
-    )
-    parser.add_argument(
-        "--rename",
-        nargs=2,
-        metavar=("OLD_TITLE", "NEW_TITLE"),
-        help='Rename a post: --rename "Old Title" "New Title"',
-    )
-    args = parser.parse_args(argv)
+    p = argparse.ArgumentParser(description="Auto-generate a draft journal post.")
+    p.add_argument("--topic", help="Topic or AI tool name")
+    p.add_argument("--publish", default="false", help="true/false: mark published")
+    p.add_argument("--model", default=DEFAULT_MODEL)
+    p.add_argument("--force", default="false", help="Skip duplicate check")
+    p.add_argument("--list", action="store_true", help="List all posts")
+    p.add_argument("--tags", default=None, help="Comma-separated tags (auto-generated if omitted)")
+    p.add_argument("--rename", nargs=2, metavar=("OLD", "NEW"), help="Rename a post")
+    args = p.parse_args(argv)
 
-    # Run preflight check
-    preflight_check()
+    if args.list: list_posts(); return 0
+    if args.rename: return 0 if rename_post(*args.rename) else 1
+    if not args.topic: p.error("--topic is required (or use --list / --rename)")
 
-    # List mode
-    if args.list:
-        list_posts()
-        return 0
+    published = args.publish.lower() in ("1", "true", "yes")
+    if not args.force.lower() in ("1", "true", "yes") and is_duplicate(args.topic, get_existing_titles()):
+        print(f"ERROR: Similar post already exists: {args.topic!r}. Use --force true to override.")
+        return 1
 
-    # Rename mode
-    if args.rename:
-        old, new = args.rename
-        return 0 if rename_post(old, new) else 1
+    body = generate_with_llm(args.topic, args.model)
 
-    # Generate mode requires --topic
-    if not args.topic:
-        parser.error("--topic is required (or use --list / --rename)")
+    # Determine tags: CLI arg > LLM-generated
+    if args.tags:
+        tags = [t.strip() for t in args.tags.split(",") if t.strip()]
+    else:
+        tags = generate_tags_with_llm(args.topic, args.model)
+        print(f"Generated tags: {', '.join(tags)}")
 
-    published = _str2bool(args.publish)
-    force = _str2bool(args.force)
-
-    # Check for duplicates unless --force is set
-    if not force:
-        existing = get_existing_topics()
-        if is_duplicate(args.topic, existing):
-            print(f"ERROR: A post with a similar title already exists: {args.topic!r}")
-            print("Existing posts:")
-            for t in sorted(existing):
-                print(f"  - {t}")
-            print("\nUse --force true to override, or choose a different topic.")
-            return 1
-
-    print(
-        f"Generating post for topic: {args.topic!r} (model={args.model}, publish={published})"
-    )
-    body = generate_with_openai(args.topic, args.model)
-    markdown = build_markdown(args.topic, body, published)
+    now = _dt.datetime.now(_dt.timezone.utc)
+    tags_str = ", ".join(tags)
+    markdown = f'---\ntitle: "{args.topic}"\ndate: "{now.isoformat()}"\npublished: {str(published).lower()}\nsource: auto_generate_post.py\ntags: "{tags_str}"\n---\n\n{body}\n'
     path = save_post(args.topic, markdown, published)
-    label = "Published" if published else "Draft"
-    print(f"{label} saved: {path}")
-
+    print(f"{'Published' if published else 'Draft'} saved: {path}")
     post_to_admin(args.topic, markdown, published)
     return 0
 

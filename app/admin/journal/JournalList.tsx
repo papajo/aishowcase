@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Plus, Pencil, Trash2 } from "lucide-react"
 import Link from "next/link"
-import { adminFetch } from "@/lib/admin-client"
+import { adminFetch } from "@/lib/admin"
 
 interface Post {
   id: string

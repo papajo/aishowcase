@@ -1,16 +1,12 @@
+import { z } from "zod"
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
-import { z } from "zod"
+import { subscribeSchema } from "@/lib/schemas"
 import { sendWelcomeEmail } from "@/lib/email"
-
-const subscribeSchema = z.object({
-  email: z.string().email("Invalid email address"),
-})
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json()
-    const { email } = subscribeSchema.parse(body)
+    const { email } = subscribeSchema.parse(await req.json())
 
     await prisma.newsletterSubscriber.upsert({
       where: { email },
@@ -18,27 +14,15 @@ export async function POST(req: Request) {
       create: { email },
     })
 
-    // Send welcome email (non-blocking)
-    sendWelcomeEmail(email).catch((err) =>
-      console.error("Welcome email failed:", err)
-    )
+    sendWelcomeEmail(email).catch((err) => console.error("Welcome email failed:", err))
 
-    return NextResponse.json({
-      success: true,
-      message: "Successfully subscribed! Check your inbox for confirmation.",
-    })
+    return NextResponse.json({ success: true, message: "Successfully subscribed!" })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const firstError = error.issues[0]
-      return NextResponse.json(
-        { error: firstError?.message || "Invalid input" },
-        { status: 400 }
-      )
+      const zErr = error as { issues: { message: string }[] }
+      return NextResponse.json({ error: zErr.issues?.[0]?.message || "Invalid input" }, { status: 400 })
     }
     console.error("Newsletter subscription error:", error)
-    return NextResponse.json(
-      { error: "Something went wrong. Please try again." },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Something went wrong." }, { status: 500 })
   }
 }

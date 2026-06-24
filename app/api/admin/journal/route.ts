@@ -1,15 +1,8 @@
+import { z } from "zod"
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
-import { z } from "zod"
-import { checkAdminAuth } from "@/lib/admin-auth"
-
-const postSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  slug: z.string().min(1, "Slug is required"),
-  excerpt: z.string().min(1, "Excerpt is required"),
-  content: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-})
+import { postSchema } from "@/lib/schemas"
+import { checkAdminAuth } from "@/lib/admin"
 
 export async function GET(req: Request) {
   const authError = checkAdminAuth(req)
@@ -20,11 +13,8 @@ export async function GET(req: Request) {
       orderBy: { publishedAt: "desc" },
     })
     return NextResponse.json({ success: true, posts })
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch posts" },
-      { status: 500 }
-    )
+  } catch {
+    return NextResponse.json({ error: "Failed to fetch posts" }, { status: 500 })
   }
 }
 
@@ -33,9 +23,7 @@ export async function POST(req: Request) {
   if (authError) return authError
 
   try {
-    const body = await req.json()
-    const data = postSchema.parse(body)
-
+    const data = postSchema.parse(await req.json())
     const post = await prisma.dailyPost.create({
       data: {
         title: data.title,
@@ -45,19 +33,13 @@ export async function POST(req: Request) {
         tags: data.tags || [],
       },
     })
-
     return NextResponse.json({ success: true, post })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0]?.message || "Invalid input" },
-        { status: 400 }
-      )
+      const zErr = error as { issues: { message: string }[] }
+      return NextResponse.json({ error: zErr.issues?.[0]?.message || "Invalid input" }, { status: 400 })
     }
     console.error("Create post error:", error)
-    return NextResponse.json(
-      { error: "Failed to create post" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to create post" }, { status: 500 })
   }
 }

@@ -1,6 +1,11 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@prisma/client"],
+
+  // Dev server on port 3003
+  devIndicators: false,
+
   // Proxy configuration for admin auth
   async rewrites() {
     return [

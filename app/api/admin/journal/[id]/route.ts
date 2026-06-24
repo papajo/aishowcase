@@ -1,15 +1,8 @@
+import { z } from "zod"
 import { prisma } from "@/lib/db"
 import { NextResponse } from "next/server"
-import { z } from "zod"
-import { checkAdminAuth } from "@/lib/admin-auth"
-
-const postSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  slug: z.string().min(1, "Slug is required"),
-  excerpt: z.string().min(1, "Excerpt is required"),
-  content: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-})
+import { postSchema } from "@/lib/schemas"
+import { checkAdminAuth } from "@/lib/admin"
 
 export async function PUT(
   req: Request,
@@ -20,9 +13,7 @@ export async function PUT(
 
   try {
     const { id } = await params
-    const body = await req.json()
-    const data = postSchema.parse(body)
-
+    const data = postSchema.parse(await req.json())
     const post = await prisma.dailyPost.update({
       where: { id },
       data: {
@@ -33,20 +24,14 @@ export async function PUT(
         tags: data.tags || [],
       },
     })
-
     return NextResponse.json({ success: true, post })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: error.issues[0]?.message || "Invalid input" },
-        { status: 400 }
-      )
+      const zErr = error as { issues: { message: string }[] }
+      return NextResponse.json({ error: zErr.issues?.[0]?.message || "Invalid input" }, { status: 400 })
     }
     console.error("Update post error:", error)
-    return NextResponse.json(
-      { error: "Failed to update post" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to update post" }, { status: 500 })
   }
 }
 
@@ -59,17 +44,10 @@ export async function DELETE(
 
   try {
     const { id } = await params
-
-    await prisma.dailyPost.delete({
-      where: { id },
-    })
-
+    await prisma.dailyPost.delete({ where: { id } })
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Delete post error:", error)
-    return NextResponse.json(
-      { error: "Failed to delete post" },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: "Failed to delete post" }, { status: 500 })
   }
 }
