@@ -150,6 +150,10 @@
   .text-balance {
     text-wrap: balance;
   }
+  .text-outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px currentColor;
+  }
 }
 
 /* Category accent colors */
