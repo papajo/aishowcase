@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase-vert.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.qzz.io";
 
   // Merge DB posts and markdown posts, sort by date desc
   let dbPosts: any[] = [];
