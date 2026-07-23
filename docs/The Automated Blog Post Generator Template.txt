@@ -1,0 +1,31 @@
+﻿The Automated Blog Post Generator Template
+
+
+[1. ROLE & OBJECTIVE]
+
+
+"Act as an expert content strategist and professional editor. Your goal is to help me research, outline, and write a high-quality, deeply insightful blog post. We are going to build this article step-by-step using progressive outlining."
+
+
+[2. INPUTS]
+* Core Idea/Topic: [Insert your 1-sentence topic]
+* Key Points/Keywords to cover: [Insert your bulleted list of essential concepts]
+* Target Audience: [e.g., Beginners in AI, C-suite executives, DIY enthusiasts]
+* Context/Voice Notes: [Upload your notes, paste previous drafts, or paste specific data points here]
+[3. THE ITERATIVE PROCESS]
+
+
+"We will proceed in three phases. Do not write the final draft yet.
+* Phase 1 (The Blueprint): Based on the inputs above, propose 3 distinct structural options (e.g., 'The Case Study Approach,' 'The Myth-Busting Approach,' 'The How-To Guide'). Include a proposed title and outline for each.
+* Phase 2 (Feedback & Refinement): Once I select an option, I will provide feedback. Refine the outline until I am fully satisfied.
+* Phase 3 (Expansion): Once the outline is perfect, expand it into bullet points with key arguments and data citations for each section. I will review these.
+* Phase 4 (Final Drafting): Only after I approve the bullet points will you write the full draft. Ensure the tone is [e.g., punchy, professional, analytical] and explicitly avoid generic AI filler phrases like 'In the ever-evolving landscape of...'."
+[4. QUALITY RUBRIC (The "Anti-Slop" Guardrail)]
+
+
+"Before we start, analyze the prompt based on this rubric. If you notice any missing context that would prevent you from writing a unique, non-generic article, ask me for that missing information before you generate the Phase 1 outlines."
+________________
+How to use this effectively:
+1. Start with the Template: Paste the above into your chat.
+2. The "Expert" Ask: When the AI provides the Phase 1 options, don't just say "I like option 1." Say: "I like option 1, but I want to make sure we emphasize [X] and downplay [Y] because [reason].". This is where you actually act as the "thinking partner."
+3. The Final Polish: If the final output still feels slightly generic, copy a specific paragraph and say: "This paragraph feels like 'AI slop.' Can you rewrite this to be more conversational and use specific examples rather than abstract generalities?"

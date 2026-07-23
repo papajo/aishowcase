@@ -36,8 +36,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, post })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const zErr = error as { issues: { message: string }[] }
-      return NextResponse.json({ error: zErr.issues?.[0]?.message || "Invalid input" }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Invalid input" }, { status: 400 })
     }
     console.error("Create post error:", error)
     return NextResponse.json({ error: "Failed to create post" }, { status: 500 })

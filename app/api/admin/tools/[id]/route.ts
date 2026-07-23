@@ -29,8 +29,7 @@ export async function PUT(
     return NextResponse.json({ success: true, tool })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const zErr = error as { issues: { message: string }[] }
-      return NextResponse.json({ error: zErr.issues?.[0]?.message || "Invalid input" }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Invalid input" }, { status: 400 })
     }
     console.error("Update tool error:", error)
     return NextResponse.json({ error: "Failed to update tool" }, { status: 500 })

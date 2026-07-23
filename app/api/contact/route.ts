@@ -18,8 +18,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, message: "Message received! I'll get back to you soon." })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const zErr = error as { issues: { message: string }[] }
-      return NextResponse.json({ error: zErr.issues?.[0]?.message || "Invalid input" }, { status: 400 })
+      return NextResponse.json({ error: error.issues[0]?.message || "Invalid input" }, { status: 400 })
     }
     console.error("Contact form error:", error)
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 })

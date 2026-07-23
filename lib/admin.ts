@@ -8,7 +8,7 @@ export function checkAdminAuth(req: Request): NextResponse | null {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const credentials = atob(authHeader.split(" ")[1])
+  const credentials = Buffer.from(authHeader.split(" ")[1], "base64").toString("utf-8")
   const [username, password] = credentials.split(":")
 
   const adminUser = process.env.ADMIN_USERNAME || "admin"

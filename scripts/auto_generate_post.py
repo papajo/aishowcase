@@ -83,6 +83,7 @@ def generate_with_llm(topic: str, model: str) -> str:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
         except urllib.error.HTTPError as e:
+            body = e.read().decode("replace", errors="replace")
             if e.code == 429 and attempt < 3:
                 delay = 2 ** (attempt + 1) + __import__("random").uniform(0, 1)
                 print(f"429 hit, retrying in {delay:.1f}s... (attempt {attempt + 1}/3)")
@@ -115,22 +116,28 @@ def generate_tags_with_llm(topic: str, model: str) -> list[str]:
     if api_key: headers["Authorization"] = f"Bearer {api_key}"
 
     req = urllib.request.Request(f"{BASE_URL.rstrip('/')}/chat/completions", data=json.dumps(payload).encode(), headers=headers, method="POST")
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            raw = json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
-            return [t.strip() for t in raw.split(",") if t.strip()]
-    except Exception as e:
-        print(f"WARNING: Tag generation failed: {e}", file=sys.stderr)
-        words = re.sub(r"[^a-zA-Z0-9\s]", "", topic).split()
-        return [w.title() for w in words if len(w) > 2][:4]
-            body = e.read().decode("replace")
+
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                raw = json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
+                return [t.strip() for t in raw.split(",") if t.strip()]
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("replace", errors="replace")
             if e.code == 429 and attempt < 3:
                 delay = 2 ** (attempt + 1) + __import__("random").uniform(0, 1)
-                print(f"429 hit, retrying in {delay:.1f}s... (attempt {attempt + 1}/3)")
+                print(f"Tag generation 429 hit, retrying in {delay:.1f}s... (attempt {attempt + 1}/3)")
                 __import__("time").sleep(delay)
                 continue
-            raise RuntimeError(f"LLM API HTTP {e.code}: {body[:200]}")
-    raise RuntimeError("Max retries exceeded")
+            print(f"WARNING: Tag generation HTTP {e.code}: {body[:200]}", file=sys.stderr)
+            break
+        except Exception as e:
+            print(f"WARNING: Tag generation failed: {e}", file=sys.stderr)
+            break
+
+    # Fallback: extract significant words from topic
+    words = re.sub(r"[^a-zA-Z0-9\s]", "", topic).split()
+    return [w.title() for w in words if len(w) > 2][:4]
 
 
 def save_post(topic: str, markdown: str, published: bool) -> str:
@@ -164,7 +171,8 @@ def list_posts() -> None:
             with open(os.path.join(d, fn), "r", encoding="utf-8") as f:
                 for line in f:
                     if line.startswith("title:"):
-                        print(f"  [{label}] {line.split(':', 1)[1].strip().strip('\"').strip(\"'\")}")
+                        t = line.split(":", 1)[1].strip().strip("'").strip('"')
+                        print(f"  [{label}] {t}")
                         break
         if not found: print(f"  [{label}] (none)")
 

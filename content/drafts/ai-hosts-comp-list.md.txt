@@ -1,0 +1,98 @@
+Here's the comparative report, sourced from public provider docs and changelogs as of mid-2026. I grouped providers by use-case bucket (because substituting a tunnel for a database isn't a fair compare) and rated each on five dimensions:
+Rating framework (1–5; higher = better)
+┌─────────────────────────┬───────────────────────────────────────────────────────────────────┐
+│ key                     │ meaning                                                           │
+├─────────────────────────┼───────────────────────────────────────────────────────────────────┤
+│ Fr Friction             │ signup → first deploy URL (5 = under a minute, no card)           │
+│ Al Always-on            │ no idle spin-down on free (5 = always hot)                        │
+│ Qt Quota generosity     │ compute/storage/bandwidth relative to typical hobby project       │
+│ Pr Production-readiness │ trustworthy enough for prod traffic, custom domain, autoscaling   │
+│ CC No credit card       │ 5 = no card required at all; 1 = card or billing profile required │
+└─────────────────────────┴───────────────────────────────────────────────────────────────────┘
+Avg is the mean (rounded to 1 decimal). I lean conservative — only providers that demonstrably earned each rating get it.
+────────────────────────────────────────────────────────────────────────────────
+1. Tunneling ("expose localhost to the world")
+┌───────────────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ provider          │ Fr  │ Al  │ Qt  │ Pr  │ CC  │ Avg │ notes                                                                                               │
+├───────────────────┼─────┼─────┼─────┼─────┼─────┼─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Cloudflare Tunnel │ 3   │ 5   │ 5   │ 4   │ 5   │ 4.4 │ requires a domain managed by CF; no bandwidth cap (fair-use); no session limit                      │
+│ ngrok (free)      │ 5   │ 2   │ 2   │ 2   │ 5   │ 3.2 │ 2-hour session ceiling forces reconnect; 1GB/mo + 20k req/mo cap; unsuitable for long-running demos │
+└───────────────────┴─────┴─────┴─────┴─────┴─────┴─────┴─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+2. Edge / Serverless Functions & Sites
+┌────────────────────────────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────────────────────────────────────────────────────────────────────────────────────────┐
+│ provider                       │ Fr  │ Al  │ Qt  │ Pr  │ CC  │ Avg │ notes                                                                                   │
+├────────────────────────────────┼─────┼─────┼─────┼─────┼─────┼─────┼─────────────────────────────────────────────────────────────────────────────────────────┤
+│ Cloudflare Workers             │ 5   │ 5   │ 4   │ 5   │ 5   │ 4.8 │ 100k req/day, 10ms CPU/req (tight for heavy logic), but unmatched gratis volume at edge │
+│ Cloudflare R2 (storage)        │ 4   │ 5   │ 5   │ 5   │ 5   │ 4.8 │ 10GB free + no egress fees; S3-compatible; the standout blob-store tier in 2026         │
+│ Cloudflare Pages               │ 5   │ 5   │ 4   │ 4   │ 5   │ 4.6 │ unlimited static, 500 builds/mo                                                         │
+│ Deno Deploy                    │ 4   │ 5   │ 5   │ 4   │ 5   │ 4.6 │ 1M req/mo + 15 CPU hr + 100GB egress                                                    │
+│ Cloudflare D1 (SQLite at edge) │ 4   │ 5   │ 4   │ 3   │ 5   │ 4.2 │ 5GB, 5M reads/day, 100k writes/day                                                      │
+│ Vercel (Hobby)                 │ 5   │ 5   │ 3   │ 4   │ 5   │ 4.4 │ 100GB BW + 1M edge req, non-commercial only — strict fair use                           │
+│ Netlify (free)                 │ 5   │ 5   │ 3   │ 3   │ 5   │ 4.2 │ 100GB BW, 300 build min, 1M Edge Func invocations                                       │
+└────────────────────────────────┴─────┴─────┴─────┴─────┴─────┴─────┴─────────────────────────────────────────────────────────────────────────────────────────┘
+3. Container / Long-Running PaaS
+┌────────────────────────────┬─────┬─────┬─────┬─────┬─────┬─────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ provider                   │ Fr  │ Al  │ Qt  │ Pr  │ CC  │ Avg │ notes                                                                                                                   │
+├────────────────────────────┼─────┼─────┼─────┼─────┼─────┼─────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Railway ($1/mo hobby       │ 4   │ 5   │ 2   │ 4   │ 3   │ 3.6 │ $5 trial + $1/mo persistent credit; not "free forever"; balanced for short bursts                                       │
+│ credit)                    │     │     │     │     │     │     │                                                                                                                         │
+│ Render (free)              │ 5   │ 2   │ 3   │ 2   │ 5   │ 3.4 │ 750 hr/mo + spin-down after 15 min idle — cold starts of 10–30s; Postgres dies after 30 days                            │
+│ Fly.io                     │ 2   │ 5   │ 1   │ 5   │ 2   │ 3.0 │ No permanent free tier post-2024; trial credit burns, then card required; rated low quota but high production-grade if  │
+│                            │     │     │     │     │     │     │ you pay                                                                                                                 │
+└────────────────────────────┴─────┴─────┴─────┴─────┴─────┴─────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+4. Dev Environments (interactive workspaces, not for prod traffic)
+┌─────────────────────────────┬─────┬─────┬─────┬─────┬─────┬─────┬──────────────────────────────────────────────────────────────────────────────┐
+│ provider                    │ Fr  │ Al  │ Qt  │ Pr  │ CC  │ Avg │ notes                                                                        │
+├─────────────────────────────┼─────┼─────┼─────┼─────┼─────┼─────┼──────────────────────────────────────────────────────────────────────────────┤
+│ GitHub Codespaces           │ 5   │ 4   │ 3   │ 1   │ 4   │ 3.4 │ 60–120 core-hr/mo + 15GB; set spending limit to $0 to avoid surprise charges │
+│ CodeSandbox (Community)     │ 5   │ 3   │ 3   │ 1   │ 5   │ 3.4 │ ~40 hr/mo VM credits; mostly IDE-grade                                       │
+│ Gitpod                      │ 4   │ 4   │ 2   │ 1   │ 5   │ 3.2 │ shifted enterprise; open-source workspaces still honored but limited hours   │
+│ Daytona ($200 fresh-credit) │ 3   │ 4   │ 4   │ 1   │ 2   │ 2.8 │ agent-sandbox oriented; CC for verification; ephemeral — not a hosting tier  │
+│ Replit (Starter)            │ 5   │ 1   │ 2   │ 1   │ 5   │ 2.8 │ aggressive spin-down; "Always-on" is now a paid feature                      │
+│ Glitch                      │ 4   │ 2   │ 2   │ 1   │ 5   │ 2.8 │ "always-free hobby tier" era is over                                         │
+└─────────────────────────────┴─────┴─────┴─────┴─────┴─────┴─────┴──────────────────────────────────────────────────────────────────────────────┘
+5. Managed Backend (Database / Auth / Storage-as-a-Service)
+┌───────────────────────────────┬─────┬─────┬─────┬─────┬─────┬─────┬──────────────────────────────────────────────────────────────────────────────────┐
+│ provider                      │ Fr  │ Al  │ Qt  │ Pr  │ CC  │ Avg │ notes                                                                            │
+├───────────────────────────────┼─────┼─────┼─────┼─────┼─────┼─────┼──────────────────────────────────────────────────────────────────────────────────┤
+│ Turso (libSQL / SQLite cloud) │ 4   │ 5   │ 5   │ 4   │ 5   │ 4.6 │ 5GB + 500M row reads/mo + 100 databases; CLI-first; standout for edge-first apps │
+│ Convex                        │ 5   │ 5   │ 3   │ 4   │ 5   │ 4.4 │ 0.5GB DB + 1GB file + 1M function calls/mo; built for JS/TS                      │
+│ Supabase                      │ 5   │ 4   │ 3   │ 4   │ 5   │ 4.2 │ 500MB Postgres + 50k MAU + 5GB egress; pauses after 7 days idle                  │
+│ Upstash (Redis)               │ 5   │ 5   │ 3   │ 3   │ 5   │ 4.2 │ 256MB + 500K cmds/mo; great for caching/rate-limit                               │
+│ Firebase (Spark)              │ 4   │ 5   │ 3   │ 4   │ 5   │ 4.2 │ 1GB Firestore + 50k Auth MAU; mobile-bias; confusing Blaze migration             │
+│ MongoDB Atlas (M0)            │ 4   │ 5   │ 2   │ 3   │ 5   │ 3.8 │ 512MB hard cap, no backups on free                                               │
+│ Neon (free)                   │ 5   │ 2   │ 3   │ 3   │ 5   │ 3.6 │ 0.5GB + 100 CU-hr/mo; auto-suspends (cold starts) — better for low-traffic prod  │
+└───────────────────────────────┴─────┴─────┴─────┴─────┴─────┴─────┴──────────────────────────────────────────────────────────────────────────────────┘
+────────────────────────────────────────────────────────────────────────────────
+"If I had to pick one for…" (quick decision matrix)
+┌──────────────────────────────────────────────┬────────────────────────────────────────────────────────────────────────────────────────┬──────────────────────────────────────────────────┐
+│ if you want…                                 │ pick                                                                                   │ why                                              │
+├──────────────────────────────────────────────┼────────────────────────────────────────────────────────────────────────────────────────┼──────────────────────────────────────────────────┤
+│ expose localhost forever, free, no card      │ Cloudflare Tunnel                                                                      │ no session cap, no bandwidth cap (fair-use), 4.4 │
+│                                              │                                                                                        │ avg                                              │
+│ a public site with zero-cost hosting forever │ Cloudflare Pages                                                                       │ unlimited bandwidth, custom domain, no card, 4.6 │
+│                                              │                                                                                        │ avg                                              │
+│ a global edge API at scale, no card          │ Cloudflare Workers                                                                     │ 100k req/day + always-on + KV/D1/R2 in same      │
+│                                              │                                                                                        │ console                                          │
+│ a Postgres DB on free, no card               │ Supabase                                                                               │ richest All-in-One (DB+Auth+Realtime+Storage),   │
+│                                              │                                                                                        │ pauses after 7d idle                             │
+│ a SQLite database at the edge                │ Turso                                                                                  │ 500M reads/mo, 5GB free, no card                 │
+│ a Redis for caching/rate-limit               │ Upstash                                                                                │ 500k cmds/mo free, serverless                    │
+│ a long-running Web Service (Node/Python/Go)  │ Render (free) (only if you accept spin-down) or Railway ($1/mo credit, always-on) —    │                                                  │
+│ on free, no card                             │ Fly.io has no permanent free in 2026                                                   │                                                  │
+│ a personal Next.js / Astro / static react    │ Vercel (Hobby) (non-commercial only) or Netlify                                        │                                                  │
+│ app                                          │                                                                                        │                                                  │
+│ a JavaScript/TypeScript backend with         │ Convex                                                                                 │                                                  │
+│ realtime                                     │                                                                                        │                                                  │
+│ a dev sandbox for an AI agent (not a hosting │ Daytona ($200 fresh credit)                                                            │                                                  │
+│ tier)                                        │                                                                                        │                                                  │
+│ a development environment for editing code   │ GitHub Codespaces (set spending limit $0)                                              │                                                  │
+│ an S3-compatible blob store with no egress   │ Cloudflare R2                                                                          │                                                  │
+│ fees                                         │                                                                                        │                                                  │
+└──────────────────────────────────────────────┴────────────────────────────────────────────────────────────────────────────────────────┴──────────────────────────────────────────────────┘
+────────────────────────────────────────────────────────────────────────────────
+Critical caveats
+1. Pricing pages change silently. All numbers here are from public docs as of mid-2026; verify before signing up to anything important.
+2. "Fair use" clauses (Vercel, Netlify, Cloudflare) reserve the right to throttle or terminate aggressive usage even within free quotas — don't ship a viral app on free tiers assuming you'll quietly survive the spike.
+3. Free-tier projects often lack business-grade features: backups (MongoDB Atlas M0), PITR (Supabase), advanced monitoring, custom auth flows, raw TCP, persistent containers (Render). If you need any of those, budget ≥$5/mo.
+4. Two of your named providers are now off the free list entirely: Fly.io (no permanent free post-2024) and Glitch (hobby era ended). They appear in the report for completeness but their Avg reflects this.
