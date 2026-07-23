@@ -25,6 +25,9 @@
 *.pem
 .session-notes*
 
+# auto-generated hero images (regeneratable via scripts/generate_heroes.py)
+/public/heroes/auto/
+
 # debug
 npm-debug.log*
 yarn-debug.log*

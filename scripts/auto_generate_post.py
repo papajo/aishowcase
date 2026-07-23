@@ -229,6 +229,24 @@ def main(argv: list[str] | None = None) -> int:
     path = save_post(args.topic, markdown, published)
     print(f"{'Published' if published else 'Draft'} saved: {path}")
     post_to_admin(args.topic, markdown, published)
+
+    # Auto-generate hero image for the new post
+    try:
+        slug = os.path.basename(path).replace(".md", "")
+        auto_dir = os.path.join(PROJECT_ROOT, "public", "heroes", "auto")
+        os.makedirs(auto_dir, exist_ok=True)
+        auto_path = os.path.join(auto_dir, f"{slug}.webp")
+        if not os.path.exists(auto_path):
+            print(f"\n🎨 Generating hero image via scripts/generate_heroes.py --slug {slug} ...")
+            import subprocess
+            subprocess.run(
+                [sys.executable, os.path.join(PROJECT_ROOT, "scripts", "generate_heroes.py"),
+                 "--slug", slug, "--provider", "pollinations"],
+                timeout=120, check=False,
+            )
+    except Exception as e:
+        print(f"⚠️  Hero image generation skipped: {e}")
+
     return 0
 
 
