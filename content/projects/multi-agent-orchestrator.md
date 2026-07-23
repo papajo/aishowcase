@@ -3,7 +3,7 @@ title: "Multi-Agent Orchestrator"
 description: "Orchestrate multiple AI agents for complex task automation"
 techStack: "TypeScript, CrewAI, OpenAI, Next.js, Redis"
 tags: "Agents, Automation, CrewAI, TypeScript"
-githubUrl: "https://github.com/papajo/multi-agent-orchestrator"
+githubUrl: "https://github.com/papajo/hermes-agent"
 featured: "true"
 order: "2"
 ---

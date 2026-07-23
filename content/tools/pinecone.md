@@ -2,7 +2,7 @@
 name: "Pinecone"
 description: "Serverless vector database optimized for AI applications and semantic search"
 category: "Vector DBs"
-logoUrl: "https://cdn.simpleicons.org/pinecone/000000"
+logoUrl: ""
 websiteUrl: "https://pinecone.io"
 rating: "4.6"
 reviewCount: "89"
