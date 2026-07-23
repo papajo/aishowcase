@@ -2,9 +2,11 @@ import { prisma } from "@/lib/db"
 import { getMarkdownPosts, getMarkdownTools, getMarkdownProjects } from "@/lib/md-utils"
 import { ArrowRight, Star, ExternalLink, Code, Calendar } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ScrollReveal, ScrollStagger, ScrollStaggerItem } from "@/components/shared/ScrollReveal"
 import { NewsletterSignup } from "@/components/shared/NewsletterSignup"
+import cybersecurityHero from "@/content/assets/cybersecurity_minimalist_hud.webp"
 import {
   ElectricGridIllustration,
   DatabasePerformanceIllustration,
@@ -93,7 +95,13 @@ export default async function HomePage() {
       .join(" ").toLowerCase()
 
     if (/\b(ai|agent|autonomous|hack|security|safety|rogue|incident)\b/.test(haystack))
-      return <ElectricGridIllustration className="w-full aspect-[2/1] object-cover" />
+      return (
+        <Image
+          src={cybersecurityHero}
+          alt="Cybersecurity HUD"
+          className="w-full aspect-[2/1] object-cover"
+        />
+      )
     if (/\b(multimodal|vision|image|video|audio|speech)\b/.test(haystack))
       return <DatabasePerformanceIllustration className="w-full aspect-[2/1] object-cover" />
     if (/\b(quantization|model|llm|training|fine.?tune|distill|compress)\b/.test(haystack))
@@ -113,7 +121,13 @@ export default async function HomePage() {
     if (/\b(columnar|row|analytics|storage|bi)\b/.test(haystack))
       return <RowVsColumnarIllustration className="w-full aspect-[2/1] object-cover" />
 
-    return <ElectricGridIllustration className="w-full aspect-[2/1] object-cover" />
+    return (
+      <Image
+        src={cybersecurityHero}
+        alt="Cybersecurity HUD"
+        className="w-full aspect-[2/1] object-cover"
+      />
+    )
   }
 
   // Define maps for illustrations
