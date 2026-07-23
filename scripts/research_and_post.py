@@ -15,7 +15,7 @@ Env vars (see auto_generate_post.py for LLM settings):
 """
 
 from __future__ import annotations
-import argparse, datetime as _dt, json, os, re, sys, time, urllib.request, urllib.error
+import argparse, datetime as _dt, json, os, re, ssl, sys, time, urllib.request, urllib.error
 
 # ── Paths ──────────────────────────────────────────────────────────────────
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +38,18 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 # ── Odysseus API config ───────────────────────────────────────────────────
 ODYSSEUS_INTERNAL_TOKEN = os.environ.get("ODYSSEUS_INTERNAL_TOKEN", "")
 ODYSSEUS_CONTAINER = os.environ.get("ODYSSEUS_CONTAINER", "odysseus-odysseus-1")
+
+# ── SSL context (macOS Python often fails to find CA certs) ───────────────
+_SSL_CTX = None
+def _get_ssl_ctx():
+    global _SSL_CTX
+    if _SSL_CTX is None:
+        try:
+            import certifi
+            _SSL_CTX = ssl.create_default_context(cafile=certifi.where())
+        except Exception:
+            _SSL_CTX = ssl.create_default_context()
+    return _SSL_CTX
 
 # ═══════════════════════════════════════════════════════════════════════════
 #  Helpers
@@ -207,11 +219,11 @@ def generate_post(research_data: dict, topic: str, model: str, temperature: floa
 
     for attempt in range(4):
         try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
+            with urllib.request.urlopen(req, context=_get_ssl_ctx(), timeout=120) as resp:
                 body = json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
                 break
         except urllib.error.HTTPError as e:
-            body_text = e.read().decode("replace", errors="replace")
+            body_text = e.read().decode(errors="replace")
             if e.code == 429 and attempt < 3:
                 delay = 2 ** (attempt + 1)
                 print(f"  ⚠ 429 hit, retrying in {delay}s... (attempt {attempt + 1}/3)")
@@ -246,7 +258,7 @@ def generate_post(research_data: dict, topic: str, model: str, temperature: floa
 
     tags: list[str] = []
     try:
-        with urllib.request.urlopen(tag_req, timeout=30) as resp:
+        with urllib.request.urlopen(tag_req, context=_get_ssl_ctx(), timeout=30) as resp:
             raw = json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
             tags = [t.strip() for t in raw.split(",") if t.strip()]
     except Exception as e:
