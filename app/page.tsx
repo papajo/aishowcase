@@ -84,6 +84,38 @@ export default async function HomePage() {
     )
   }
 
+  // ── Topic-aware hero illustration ────────────────────────────────────────
+  /** Maps keywords in a post title/tags to an illustration component */
+  function heroIllustrationFor(
+    post: { title?: string; tags?: string[]; excerpt?: string },
+  ) {
+    const haystack = [post.title ?? "", ...(post.tags ?? []), post.excerpt ?? ""]
+      .join(" ").toLowerCase()
+
+    if (/\b(ai|agent|autonomous|hack|security|safety|rogue|incident)\b/.test(haystack))
+      return <ElectricGridIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(multimodal|vision|image|video|audio|speech)\b/.test(haystack))
+      return <DatabasePerformanceIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(quantization|model|llm|training|fine.?tune|distill|compress)\b/.test(haystack))
+      return <GearsIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(prompt|engineering|context|attention|self.?attent|token)\b/.test(haystack))
+      return <FactoryDatabaseIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(deploy|forward|engineer|productivity|dev|code|software)\b/.test(haystack))
+      return <LaptopClockIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(reasoning|think|deep.?seek|r1|logic)\b/.test(haystack))
+      return <ApexAnalyticsIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(data|database|rag|retrieval|vector|search|index)\b/.test(haystack))
+      return <DatabaseLockIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(edge|iot|industrial|sensor|stream)\b/.test(haystack))
+      return <PlantFloorIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(time|delay|latency|schedule)\b/.test(haystack))
+      return <TimeDelayIllustration className="w-full aspect-[2/1] object-cover" />
+    if (/\b(columnar|row|analytics|storage|bi)\b/.test(haystack))
+      return <RowVsColumnarIllustration className="w-full aspect-[2/1] object-cover" />
+
+    return <ElectricGridIllustration className="w-full aspect-[2/1] object-cover" />
+  }
+
   // Define maps for illustrations
   const projectIllustrations = [
     <DatabasePerformanceIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
@@ -116,7 +148,7 @@ export default async function HomePage() {
               <ScrollReveal>
                 <Link href={`/journal/${featuredPost.slug}`} className="group block glass-card p-0 overflow-hidden">
                   <div className="relative overflow-hidden">
-                    <ElectricGridIllustration className="w-full aspect-[2/1] object-cover" />
+                    {heroIllustrationFor(featuredPost)}
                     <div className="absolute inset-0 bg-gradient-to-t from-[oklch(0.15_0.02_40)/60] to-transparent" />
                   </div>
                   
