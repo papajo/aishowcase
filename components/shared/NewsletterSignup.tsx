@@ -34,18 +34,18 @@ export function NewsletterSignup() {
   }
 
   return (
-    <section className="py-24 border-t border-zinc-250/60 dark:border-zinc-800/60">
+    <section className="py-24 border-t border-[oklch(0.88_0.02_50)/60] dark:border-[oklch(0.2_0.02_45)/60]">
       <div className="max-w-md mx-auto text-center px-6">
-        <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h2 className="text-3xl md:text-4xl font-heading font-extrabold tracking-tight text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.92_0.02_60)]">
           Stay updated with new posts and releases.
         </h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-3 max-w-sm mx-auto leading-relaxed">
+        <p className="text-sm text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)] mt-3 max-w-sm mx-auto leading-relaxed">
           For a monthly digest of tools, logs, and updates delivered straight to your inbox.
         </p>
         
         <form onSubmit={handleSubmit} className="mt-8 text-left space-y-4">
           <div className="space-y-1.5">
-            <label htmlFor="newsletter-email" className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+            <label htmlFor="newsletter-email" className="text-xs font-semibold text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)]">
               Email *
             </label>
             <input
@@ -54,7 +54,7 @@ export function NewsletterSignup() {
               value={email}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
               placeholder="name@example.com"
-              className="w-full text-sm bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md px-3.5 py-2.5 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-450 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:focus:ring-zinc-650 focus:border-transparent transition-all"
+              className="w-full text-sm bg-white dark:bg-[oklch(0.13_0.02_45)] border border-[oklch(0.88_0.02_50)] dark:border-[oklch(0.2_0.02_45)] rounded-md px-3.5 py-2.5 text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.92_0.02_60)] placeholder:text-[oklch(0.5_0.03_40)] dark:placeholder:text-[oklch(0.65_0.03_45)] focus:outline-none focus:ring-1 focus:ring-[oklch(0.55_0.14_30)] dark:focus:ring-[oklch(0.68_0.12_30)] focus:border-transparent transition-all"
               required
             />
           </div>
@@ -62,7 +62,7 @@ export function NewsletterSignup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-zinc-900 hover:bg-zinc-850 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-bold text-xs py-3 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[oklch(0.55_0.14_30)] hover:bg-[oklch(0.5_0.14_30)] dark:bg-[oklch(0.68_0.12_30)] dark:hover:bg-[oklch(0.63_0.12_30)] text-white dark:text-[oklch(0.09_0.01_40)] font-bold text-xs py-3 px-4 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Subscribing..." : "Subscribe"}
           </button>
