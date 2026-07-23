@@ -23,7 +23,7 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-heading",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.qzz.io";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase-vert.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
