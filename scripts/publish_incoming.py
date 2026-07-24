@@ -4,14 +4,16 @@ Watch content/incoming/ for new posts and hero images, validate, and publish.
 
 Drop files into content/incoming/:
   - .md files with frontmatter (title, date, published, tags required)
-  - .webp/.png/.jpg hero images (named same as the .md file or referenced in frontmatter)
+  - .html files (auto-converted to markdown, frontmatter auto-generated)
+  - .pdf files (auto-converted to markdown via pandoc, frontmatter auto-generated)
+  - .webp/.png/.jpg hero images (named same as the post or referenced in frontmatter)
 
 Usage:
   python3 scripts/publish_incoming.py              # Process all incoming files
   python3 scripts/publish_incoming.py --dry-run    # Validate without moving
   python3 scripts/publish_incoming.py --list       # Show what's waiting
 
-Frontmatter example:
+Frontmatter example (for .md files):
   ---
   title: "My Post Title"
   date: "2026-07-24T10:00:00+00:00"
@@ -31,6 +33,8 @@ HEROES_MANUAL_DIR = os.path.join(PROJECT_ROOT, "public", "heroes", "manual")
 
 REQUIRED_FRONTMATTER = {"title", "date", "tags"}
 IMAGE_EXTS = {".webp", ".png", ".jpg", ".jpeg"}
+CONVERTIBLE_EXTS = {".html", ".htm", ".pdf"}
+POST_EXTS = {".md"} | CONVERTIBLE_EXTS
 
 
 def parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
@@ -45,26 +49,115 @@ def parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
             key, _, val = line.partition(":")
             meta[key.strip()] = val.strip().strip('"').strip("'")
 
-    return meta, match.group(2)
+    return meta, match.group(1), match.group(2)
 
 
-def validate_post(filepath: str) -> list[str]:
+def slugify(text: str) -> str:
+    text = text.lower().strip()
+    text = re.sub(r"[^a-z0-9\s-]", "", text)
+    text = re.sub(r"[\s_-]+", "-", text)
+    return text.strip("-")[:60] or "post"
+
+
+def extract_title_from_html(html_content: str) -> str:
+    """Extract title from HTML content."""
+    # Try <title> tag
+    match = re.search(r"<title[^>]*>(.*?)</title>", html_content, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    # Try first <h1> tag
+    match = re.search(r"<h1[^>]*>(.*?)</h1>", html_content, re.DOTALL | re.IGNORECASE)
+    if match:
+        return re.sub(r"<[^>]+>", "", match.group(1)).strip()
+    return ""
+
+
+def convert_html_to_markdown(filepath: str) -> str | None:
+    """Convert HTML file to markdown with frontmatter."""
+    try:
+        import markdownify
+        with open(filepath, "r", encoding="utf-8") as f:
+            html = f.read()
+
+        title = extract_title_from_html(html)
+        if not title:
+            title = slugify(os.path.basename(filepath)).replace("-", " ").title()
+
+        body = markdownify.markdownify(html, strip=["script", "style", "nav", "footer", "header"])
+        body = re.sub(r"\n{3,}", "\n\n", body).strip()
+
+        now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        return (
+            f'---\ntitle: "{title}"\ndate: "{now}"\npublished: true\n'
+            f'source: publish_incoming.py (html conversion)\ntags: ""\n---\n\n{body}\n'
+        )
+    except ImportError:
+        print("  ⚠️  markdownify not installed — run: pip install markdownify")
+        return None
+    except Exception as e:
+        print(f"  ❌ HTML conversion failed: {e}")
+        return None
+
+
+def convert_pdf_to_markdown(filepath: str) -> str | None:
+    """Convert PDF file to markdown with frontmatter via pandoc."""
+    try:
+        result = subprocess.run(
+            ["pandoc", filepath, "-t", "markdown", "--wrap=none"],
+            capture_output=True, text=True, timeout=60
+        )
+        if result.returncode != 0:
+            print(f"  ❌ pandoc error: {result.stderr[:200]}")
+            return None
+
+        body = result.stdout.strip()
+        if not body:
+            print(f"  ❌ pandoc produced empty output")
+            return None
+
+        # Try to extract title from first heading
+        title_match = re.search(r"^#+\s+(.+)$", body, re.MULTILINE)
+        title = title_match.group(1).strip() if title_match else ""
+        if not title:
+            title = slugify(os.path.basename(filepath)).replace("-", " ").title()
+
+        now = _dt.datetime.now(_dt.timezone.utc).isoformat()
+        return (
+            f'---\ntitle: "{title}"\ndate: "{now}"\npublished: true\n'
+            f'source: publish_incoming.py (pdf conversion)\ntags: ""\n---\n\n{body}\n'
+        )
+    except FileNotFoundError:
+        print("  ⚠️  pandoc not installed — run: brew install pandoc")
+        return None
+    except Exception as e:
+        print(f"  ❌ PDF conversion failed: {e}")
+        return None
+
+
+def convert_to_markdown(filepath: str) -> str | None:
+    """Convert HTML or PDF to markdown. Returns None on failure."""
+    ext = os.path.splitext(filepath)[1].lower()
+    if ext in (".html", ".htm"):
+        return convert_html_to_markdown(filepath)
+    elif ext == ".pdf":
+        return convert_pdf_to_markdown(filepath)
+    return None
+
+
+def validate_post(filepath: str, content: str | None = None) -> list[str]:
     """Validate a post file. Returns list of errors (empty = valid)."""
     errors = []
     filename = os.path.basename(filepath)
 
-    if not filename.endswith(".md"):
-        errors.append(f"Not a markdown file: {filename}")
-        return errors
+    if content is None:
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception as e:
+            errors.append(f"Cannot read file: {e}")
+            return errors
 
-    try:
-        with open(filepath, "r", encoding="utf-8") as f:
-            content = f.read()
-    except Exception as e:
-        errors.append(f"Cannot read file: {e}")
-        return errors
-
-    meta, body = parse_frontmatter(content)
+    meta, _, body = parse_frontmatter(content)
 
     if not meta:
         errors.append("Missing frontmatter (file must start with --- delimited YAML)")
@@ -83,16 +176,12 @@ def validate_post(filepath: str) -> list[str]:
     return errors
 
 
-def slugify(text: str) -> str:
-    text = text.lower().strip()
-    text = re.sub(r"[^a-z0-9\s-]", "", text)
-    text = re.sub(r"[\s_-]+", "-", text)
-    return text.strip("-")[:60] or "post"
-
-
 def find_hero_for_post(post_filename: str, meta: dict[str, str]) -> str | None:
     """Find a matching hero image for a post."""
-    post_slug = post_filename.replace(".md", "")
+    # Derive slug from filename, stripping convertible extensions
+    slug = post_filename
+    for ext in POST_EXTS:
+        slug = slug.replace(ext, "")
 
     # Check explicit hero field in frontmatter
     hero_ref = meta.get("hero", "")
@@ -103,84 +192,107 @@ def find_hero_for_post(post_filename: str, meta: dict[str, str]) -> str | None:
 
     # Look for image with same base name
     for ext in IMAGE_EXTS:
-        candidate = os.path.join(INCOMING_DIR, post_slug + ext)
+        candidate = os.path.join(INCOMING_DIR, slug + ext)
         if os.path.exists(candidate):
             return candidate
 
     # Look for any image that partially matches the slug
     for fn in os.listdir(INCOMING_DIR):
         if os.path.splitext(fn)[1].lower() in IMAGE_EXTS:
-            if post_slug[:20] in fn.replace(" ", "-").lower():
+            if slug[:20] in fn.replace(" ", "-").lower():
                 return os.path.join(INCOMING_DIR, fn)
 
     return None
 
 
+def check_duplicate_title(title: str) -> bool:
+    """Check if a title already exists in published posts."""
+    if not os.path.isdir(POSTS_DIR):
+        return False
+    for fn in os.listdir(POSTS_DIR):
+        if not fn.endswith(".md"):
+            continue
+        with open(os.path.join(POSTS_DIR, fn), "r", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("title:"):
+                    existing = line.split(":", 1)[1].strip().strip('"').strip("'")
+                    if existing.lower() == title.lower():
+                        return True
+                    break
+    return False
+
+
 def process_post(filepath: str, dry_run: bool = False) -> bool:
     """Process a single incoming post. Returns True if successful."""
     filename = os.path.basename(filepath)
-    slug = filename.replace(".md", "")
+    ext = os.path.splitext(filename)[1].lower()
+
+    # Convert non-markdown files
+    content = None
+    if ext in CONVERTIBLE_EXTS:
+        print(f"  🔄 Converting {ext} → markdown: {filename}")
+        content = convert_to_markdown(filepath)
+        if not content:
+            return False
+        # Change filename to .md
+        filename = os.path.splitext(filename)[0] + ".md"
 
     # Validate
-    errors = validate_post(filepath)
+    if ext == ".md" and content is None:
+        errors = validate_post(filepath)
+    else:
+        errors = validate_post(filepath, content)
     if errors:
         print(f"  ❌ {filename}:")
         for e in errors:
             print(f"     - {e}")
         return False
 
-    # Read content
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
+    # Read content if not already converted
+    if content is None:
+        with open(filepath, "r", encoding="utf-8") as f:
+            content = f.read()
 
-    meta, _ = parse_frontmatter(content)
-
-    # Ensure published: true
-    if "published" not in content.split("---")[1]:
-        # Add published field if missing
-        content = content.replace(
-            "---\n",
-            "---\npublished: true\n",
-            1
-        )
+    meta, frontmatter_raw, body = parse_frontmatter(content)
 
     # Check for duplicate title
     title = meta.get("title", "")
-    if os.path.isdir(POSTS_DIR):
-        for fn in os.listdir(POSTS_DIR):
-            if not fn.endswith(".md"):
-                continue
-            with open(os.path.join(POSTS_DIR, fn), "r", encoding="utf-8") as f:
-                for line in f:
-                    if line.startswith("title:"):
-                        existing = line.split(":", 1)[1].strip().strip('"').strip("'")
-                        if existing.lower() == title.lower():
-                            print(f"  ⚠️  Skipping {filename}: duplicate title '{title}'")
-                            return False
-                        break
+    if check_duplicate_title(title):
+        print(f"  ⚠️  Skipping {filename}: duplicate title '{title}'")
+        return False
 
-    # Find hero image
-    hero_path = find_hero_for_post(filename, meta)
+    # Find hero image (use original filename for matching)
+    original_filename = os.path.basename(filepath)
+    hero_path = find_hero_for_post(original_filename, meta)
 
     if dry_run:
         print(f"  ✅ {filename} → content/posts/{filename}")
         print(f"     Title: {title}")
         print(f"     Tags: {meta.get('tags', '(none)')}")
         if hero_path:
-            print(f"     Hero: {os.path.basename(hero_path)} → public/heroes/manual/{slug}{os.path.splitext(hero_path)[1]}")
+            slug = os.path.splitext(filename)[0]
+            hero_ext = os.path.splitext(hero_path)[1]
+            print(f"     Hero: {os.path.basename(hero_path)} → public/heroes/manual/{slug}{hero_ext}")
         else:
             print(f"     Hero: (none found — will use auto-generated)")
         return True
 
-    # Move post
+    # Write converted file or move original
     os.makedirs(POSTS_DIR, exist_ok=True)
     dest = os.path.join(POSTS_DIR, filename)
-    shutil.move(filepath, dest)
-    print(f"  📝 Published: {filename}")
+    if ext in CONVERTIBLE_EXTS:
+        with open(dest, "w", encoding="utf-8") as f:
+            f.write(content)
+        os.remove(filepath)
+        print(f"  📝 Converted & published: {filename}")
+    else:
+        shutil.move(filepath, dest)
+        print(f"  📝 Published: {filename}")
 
     # Move hero image
     if hero_path:
         os.makedirs(HEROES_MANUAL_DIR, exist_ok=True)
+        slug = os.path.splitext(filename)[0]
         hero_ext = os.path.splitext(hero_path)[1]
         hero_dest = os.path.join(HEROES_MANUAL_DIR, f"{slug}{hero_ext}")
         shutil.move(hero_path, hero_dest)
@@ -203,14 +315,28 @@ def list_incoming():
     print(f"\nFiles in content/incoming/ ({len(files)}):\n")
     for fn in sorted(files):
         filepath = os.path.join(INCOMING_DIR, fn)
-        if fn.endswith(".md"):
+        ext = os.path.splitext(fn)[1].lower()
+
+        if ext == ".md":
             errors = validate_post(filepath)
             status = "✅" if not errors else "❌"
             print(f"  {status} {fn}")
             if errors:
                 for e in errors:
                     print(f"     - {e}")
-        elif os.path.splitext(fn)[1].lower() in IMAGE_EXTS:
+        elif ext in CONVERTIBLE_EXTS:
+            # Try conversion to validate
+            content = convert_to_markdown(filepath)
+            if content:
+                errors = validate_post(filepath, content)
+                status = "✅" if not errors else "⚠️"
+                print(f"  {status} {fn} (will convert to .md)")
+                if errors:
+                    for e in errors:
+                        print(f"     - {e}")
+            else:
+                print(f"  ❌ {fn} (conversion failed)")
+        elif ext.lower() in IMAGE_EXTS:
             print(f"  🖼️  {fn}")
         else:
             print(f"  ⚠️  {fn} (unknown type)")
@@ -229,29 +355,29 @@ def main():
 
     if not os.path.isdir(INCOMING_DIR):
         os.makedirs(INCOMING_DIR, exist_ok=True)
-        print(f"Created {INCOMING_DIR} — drop .md files and hero images here.")
+        print(f"Created {INCOMING_DIR} — drop .md/.html/.pdf files and hero images here.")
         return 0
 
-    # Find .md files
-    md_files = sorted([
+    # Find post files (.md, .html, .pdf)
+    post_files = sorted([
         os.path.join(INCOMING_DIR, f)
         for f in os.listdir(INCOMING_DIR)
-        if f.endswith(".md") and not f.startswith(".")
+        if os.path.splitext(f)[1].lower() in POST_EXTS and not f.startswith(".")
     ])
 
-    if not md_files:
-        print("No .md files in content/incoming/ — nothing to publish.")
+    if not post_files:
+        print("No post files (.md/.html/.pdf) in content/incoming/ — nothing to publish.")
         return 0
 
     print(f"\n{'='*50}")
-    print(f"  Publishing {len(md_files)} post(s) from content/incoming/")
+    print(f"  Publishing {len(post_files)} post(s) from content/incoming/")
     print(f"  Dry run: {args.dry_run}")
     print(f"{'='*50}\n")
 
     success = 0
     failed = 0
 
-    for filepath in md_files:
+    for filepath in post_files:
         if process_post(filepath, dry_run=args.dry_run):
             success += 1
         else:
