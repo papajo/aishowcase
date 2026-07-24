@@ -27,7 +27,7 @@ pnpm dev                     # → http://localhost:3000
 
 - **Hybrid data layer** — content from both PostgreSQL and local Markdown files, merged by slug
 - **Admin panel** — Basic auth-protected CRUD at `/admin/` for tools, projects, and journal posts
-- **Auto-generation** — GitHub Action + Python script produces blog posts via OpenAI-compatible LLMs
+- **Auto-generation** — GitHub Action + Python script produces blog posts via NVIDIA API Catalog (OpenAI-compatible) LLMs
 - **Dark-first** — dark mode default with shadcn/ui, oklch color space, TailwindCSS v4
 
 ## Documentation

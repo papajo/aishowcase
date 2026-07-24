@@ -51,7 +51,7 @@ python3 scripts/generate_heroes.py --prompt some-post-slug
 | Provider       | Flag              | Cost       | API Key Needed        |
 |----------------|-------------------|------------|-----------------------|
 | Pollinations.ai | `--provider pollinations` | Free     | None                  |
-| DALL·E 3        | `--provider dalle3`       | ~$0.04/img | `OPENAI_API_KEY`      |
+| DALL·E 3        | `--provider dalle3`       | ~$0.04/img | `NVIDIA_API_KEY` (or `OPENAI_API_KEY`) |
 | Stability AI   | `--provider stability`    | ~$0.04/img | `STABILITY_API_KEY`   |
 
 **Default is Pollinations.ai** — free, no key needed, uses Flux model.
@@ -82,7 +82,7 @@ The script maps post content to visual styles. Each topic has a hand-written pro
 |-----------------|----------|--------------------------------|
 | `HEROES_WIDTH`  | `1200`   | Image width in pixels          |
 | `HEROES_HEIGHT` | `600`    | Image height in pixels         |
-| `OPENAI_API_KEY`| —        | Required for DALL·E 3 provider |
+| `NVIDIA_API_KEY`| —        | Required for DALL·E 3 provider (or `OPENAI_API_KEY`) |
 | `STABILITY_API_KEY`| —     | Required for Stability provider|
 
 ### Output

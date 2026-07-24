@@ -5,7 +5,7 @@ Wires Odysseus Deep Research into the AI Showcase blog. One command researches, 
 ## Prerequisites
 
 - **Odysseus** running (`docker compose up` in the odysseus repo)
-- **Ollama** running with `qwen2.5:7b` (or set `OPENAI_BASE_URL` to another provider)
+- **Ollama** running with `qwen2.5:7b` (or set `NVIDIA_BASE_URL` to another provider)
 - **Project on Vercel** auto-deploying from the `main` branch
 
 ## Quick Start
@@ -13,8 +13,8 @@ Wires Odysseus Deep Research into the AI Showcase blog. One command researches, 
 ```bash
 # One-shot: research → write → publish → deploy
 ODYSSEUS_INTERNAL_TOKEN=dev-blog-integration-token \
-OPENAI_API_KEY="ollama" \
-OPENAI_BASE_URL="http://localhost:11434/v1" \
+NVIDIA_API_KEY="ollama" \
+NVIDIA_BASE_URL="http://localhost:11434/v1" \
 python3 scripts/research_and_post.py \
   --topic "Your topic here" \
   --publish \
@@ -56,8 +56,8 @@ docker exec odysseus-odysseus-1 cat /app/data/deep_research/rp-<session-id>.json
 cd /Users/padoshi/Projects/ai-showcase
 docker cp odysseus-odysseus-1:/app/data/deep_research/rp-<session-id>.json .
 
-OPENAI_API_KEY="ollama" \
-OPENAI_BASE_URL="http://localhost:11434/v1" \
+NVIDIA_API_KEY="ollama" \
+NVIDIA_BASE_URL="http://localhost:11434/v1" \
 python3 scripts/research_and_post.py \
   --topic "Your topic here" \
   --no-research \
@@ -78,18 +78,27 @@ git push
 ### OpenRouter (if key is valid)
 
 ```bash
-OPENAI_API_KEY="$OPENROUTER_API_KEY" \
-OPENAI_BASE_URL="https://openrouter.ai/api/v1" \
-OPENAI_MODEL="openrouter/free" \
+NVIDIA_API_KEY="$OPENROUTER_API_KEY" \
+NVIDIA_BASE_URL="https://openrouter.ai/api/v1" \
+NVIDIA_MODEL="openrouter/free" \
+# ... rest of command
+```
+
+### NVIDIA API Catalog (default)
+
+```bash
+NVIDIA_API_KEY="nvapi-..." \
+NVIDIA_BASE_URL="https://integrate.api.nvidia.com/v1" \
+NVIDIA_MODEL="meta/llama-3.1-8b-instruct" \
 # ... rest of command
 ```
 
 ### OpenAI (requires active billing)
 
 ```bash
-OPENAI_API_KEY="sk-..." \
-OPENAI_BASE_URL="https://api.openai.com/v1" \
-OPENAI_MODEL="gpt-4o-mini" \
+NVIDIA_API_KEY="sk-..." \
+NVIDIA_BASE_URL="https://api.openai.com/v1" \
+NVIDIA_MODEL="gpt-4o-mini" \
 # ... rest of command
 ```
 

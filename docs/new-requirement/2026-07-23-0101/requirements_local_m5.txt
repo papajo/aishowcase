@@ -1,0 +1,12 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+diffusers>=0.31.0
+transformers>=4.44.0
+accelerate
+Pillow
+safetensors
+# For M5 MPS acceleration (torch already includes it on macOS)
+# No xformers needed on MPS
+
+# Optional: for better memory on 16GB
+# pip install optimum

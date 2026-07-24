@@ -9,7 +9,7 @@ Usage:
   python3 scripts/research_and_post.py --topic "Your Topic Here" [--publish] [--model ...]
 
 Env vars (see auto_generate_post.py for LLM settings):
-  OPENAI_API_KEY, OPENAI_BASE_URL, OPENAI_MODEL  — same as auto_generate_post.py
+  NVIDIA_API_KEY, NVIDIA_BASE_URL, NVIDIA_MODEL  — same as auto_generate_post.py
   ODYSSEUS_DATA_DIR   — Odysseus data dir (default: ../odysseus/data)
   ODYSSEUS_INTERNAL_TOKEN  — for triggering research via internal API
 """
@@ -31,9 +31,9 @@ ODYSSEUS_DATA_DIR = os.environ.get(
 DEEP_RESEARCH_DIR = os.path.join(ODYSSEUS_DATA_DIR, "deep_research")
 
 # ── LLM config (mirrors auto_generate_post.py) ────────────────────────────
-DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+DEFAULT_MODEL = os.environ.get("NVIDIA_MODEL", "meta/llama-3.1-8b-instruct")
+BASE_URL = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
+NVIDIA_API_KEY = os.environ.get("NVIDIA_API_KEY")
 
 # ── Odysseus API config ───────────────────────────────────────────────────
 ODYSSEUS_INTERNAL_TOKEN = os.environ.get("ODYSSEUS_INTERNAL_TOKEN", "")
@@ -180,7 +180,7 @@ def generate_post(research_data: dict, topic: str, model: str, temperature: floa
     research_context += f"- Queries executed: {stats.get('Queries', '?')}\n"
     research_context += f"- URLs analyzed: {stats.get('URLs', '?')}\n"
 
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("NVIDIA_API_KEY")
     is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
 
     # ── Generate the blog post body ──

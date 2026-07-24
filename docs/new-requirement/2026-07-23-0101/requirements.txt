@@ -1,0 +1,9 @@
+replicate
+requests
+Pillow
+together
+
+# Optional for local generation (no API needed, runs on GPU):
+# diffusers
+# transformers
+# accelerate
