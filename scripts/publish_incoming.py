@@ -203,10 +203,15 @@ def find_hero_for_post(post_filename: str, meta: dict[str, str]) -> str | None:
         if os.path.exists(candidate):
             return candidate
 
-    # Look for any image that partially matches the slug
+    # Look for any image that partially matches the slug (normalize separators)
+    slug_norm = re.sub(r"[-_]+", " ", slug).lower()
     for fn in os.listdir(INCOMING_DIR):
         if os.path.splitext(fn)[1].lower() in IMAGE_EXTS:
-            if slug[:20] in fn.replace(" ", "-").lower():
+            fn_norm = re.sub(r"[-_]+", " ", os.path.splitext(fn)[0]).lower()
+            # Check if slug words appear in filename or vice versa
+            slug_words = set(slug_norm.split())
+            fn_words = set(fn_norm.split())
+            if slug_words & fn_words and len(slug_words & fn_words) >= 2:
                 return os.path.join(INCOMING_DIR, fn)
 
     return None
