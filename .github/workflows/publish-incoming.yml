@@ -1,0 +1,41 @@
+name: Publish Incoming Posts
+on:
+  push:
+    paths:
+      - 'content/incoming/**'
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+
+      - name: Check for incoming posts
+        id: check
+        run: |
+          if ls content/incoming/*.md 1>/dev/null 2>&1; then
+            echo "has_posts=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_posts=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish posts
+        if: steps.check.outputs.has_posts == 'true'
+        run: python3 scripts/publish_incoming.py
+
+      - name: No incoming posts
+        if: steps.check.outputs.has_posts == 'false'
+        run: echo "No incoming posts to publish"

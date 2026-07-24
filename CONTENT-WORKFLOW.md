@@ -156,6 +156,59 @@ python3 scripts/auto_generate_post.py --topic "Your Topic" --publish true --forc
 
 ---
 
+## Pipeline 3: Drop Folder (Manual Posts)
+
+**Best for**: Writing posts manually (or with external tools), then auto-publishing.
+
+### How It Works
+
+1. Drop `.md` files into `content/incoming/`
+2. Optionally drop a hero image (`.webp`, `.png`, `.jpg`) with the same base name
+3. Run the publish script or push to `main` — GitHub Action handles the rest
+
+### Local Usage
+
+```bash
+# See what's waiting
+python3 scripts/publish_incoming.py --list
+
+# Validate without moving (dry run)
+python3 scripts/publish_incoming.py --dry-run
+
+# Publish all incoming posts
+python3 scripts/publish_incoming.py
+```
+
+### GitHub Action
+
+The `.github/workflows/publish-incoming.yml` workflow triggers on any push to `content/incoming/**` on `main`. It runs `publish_incoming.py` which:
+- Validates frontmatter (title, date, tags required)
+- Checks for duplicate titles
+- Moves posts to `content/posts/`
+- Moves hero images to `public/heroes/manual/`
+- Commits and pushes → Vercel auto-deploys
+
+### Required Frontmatter
+
+```yaml
+---
+title: "Your Post Title"
+date: "2026-07-24T10:00:00+00:00"
+published: true
+tags: "Tag1, Tag2, Tag3"
+hero: optional-hero-filename.webp   # optional
+---
+```
+
+### Hero Image Matching
+
+The script looks for hero images in this order:
+1. Explicit `hero:` field in frontmatter
+2. Image with same base name as the `.md` file (e.g., `my-post.webp` for `my-post.md`)
+3. Any image whose name partially matches the post slug
+
+---
+
 ## Content Types Summary
 
 | Type | DB Model | Markdown Dir | Frontmatter Required Fields |
