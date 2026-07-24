@@ -121,7 +121,7 @@ The `id` prefix `md-` distinguishes markdown-origin content from DB records. Thi
 The GitHub Action `.github/workflows/auto_generate_post.yml`:
 1. Takes a topic via `workflow_dispatch` input
 2. Calls `scripts/auto_generate_post.py`
-3. The script calls an OpenAI-compatible API to generate content
+3. The script calls an NVIDIA API Catalog (OpenAI-compatible) endpoint to generate content
 4. Saves the result as a draft in `content/drafts/`
 5. If `--publish true`, sets `published: true` in frontmatter
 6. Commits and pushes the new file
@@ -139,6 +139,19 @@ python3 scripts/auto_generate_post.py --topic "Claude Code review" --publish tru
 
 # List existing titles (to check for duplicates)
 python3 scripts/auto_generate_post.py --list
+```
+
+**Prerequisites**: The script requires `NVIDIA_API_KEY` to generate real content. Without it, it falls back to stub mode. The key is stored in `.env.local` — load it before running:
+
+```bash
+set -a && source .env.local && set +a
+python3 scripts/auto_generate_post.py --topic "Your Topic" --publish true --force true
+```
+
+Or export directly:
+```bash
+export NVIDIA_API_KEY="nvapi-..."
+python3 scripts/auto_generate_post.py --topic "Your Topic" --publish true --force true
 ```
 
 ---

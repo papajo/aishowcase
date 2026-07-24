@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 """
-Auto-generate a draft journal post using an OpenAI-compatible LLM API.
+Auto-generate a draft journal post using an NVIDIA API Catalog (OpenAI-compatible) LLM API.
 
 Usage:
-  python3 scripts/auto_generate_post.py --topic "Some AI tool" [--publish true] [--model gpt-4o-mini] [--force]
+  python3 scripts/auto_generate_post.py --topic "Some AI tool" [--publish true] [--model meta/llama-3.1-8b-instruct] [--force]
   python3 scripts/auto_generate_post.py --list
   python3 scripts/auto_generate_post.py --rename "Old Title" "New Title"
 
 Env vars:
-  OPENAI_API_KEY    Required for LLM calls (falls back to stub mode if missing)
-  OPENAI_BASE_URL   Optional, defaults to https://api.openai.com/v1
-  OPENAI_MODEL      Optional, defaults to gpt-4o-mini
+  NVIDIA_API_KEY    Required for LLM calls (falls back to stub mode if missing)
+  NVIDIA_BASE_URL   Optional, defaults to https://integrate.api.nvidia.com/v1
+  NVIDIA_MODEL      Optional, defaults to meta/llama-3.1-8b-instruct
   ADMIN_API_URL     Optional, POST endpoint for creating drafts in-app
   ADMIN_API_TOKEN   Optional, bearer token for ADMIN_API_URL
 """
 from __future__ import annotations
 import argparse, datetime as _dt, json, os, re, sys, urllib.request, urllib.error
+#fix applied
+import ssl
+import urllib.request
+import certifi  # Requires: pip install certifi
+# HERE IS THE DEFINITION:
+context = ssl.create_default_context(cafile=certifi.where())
 
-DEFAULT_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
-BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
+DEFAULT_MODEL = os.environ.get("NVIDIA_MODEL", "meta/llama-3.1-8b-instruct")
+BASE_URL = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONTENT_DIR = os.path.join(PROJECT_ROOT, "content")
 DRAFTS_DIR = os.path.join(CONTENT_DIR, "drafts")
@@ -58,11 +64,11 @@ def is_duplicate(topic: str, existing: set[str]) -> bool:
 
 
 def generate_with_llm(topic: str, model: str) -> str:
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("NVIDIA_API_KEY")
     is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
 
     if not api_key and not is_local:
-        print("⚠️  OPENAI_API_KEY not set — using stub mode")
+        print("⚠️  NVIDIA_API_KEY not set — using stub mode")
         return f"## {topic}\n\n_(Stub content: replace with real generated content.)_\n\nThis is a draft about **{topic}**.\n"
 
     payload = {
@@ -78,12 +84,16 @@ def generate_with_llm(topic: str, model: str) -> str:
 
     req = urllib.request.Request(f"{BASE_URL.rstrip('/')}/chat/completions", data=json.dumps(payload).encode(), headers=headers, method="POST")
 
-    for attempt in range(4):
+    max_retries = 3
+    retry_delay = 5  # seconds to wait before trying again
+    for attempt in range(max_retries):
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
+            with urllib.request.urlopen(req, timeout=60, context=context) as resp:
                 return json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
         except urllib.error.HTTPError as e:
-            body = e.read().decode("replace", errors="replace")
+            #body = e.read().decode("utf-8", errors="replace")
+            # Fix applied here: decode using "utf-8"
+            error_body = e.read().decode("utf-8", errors="replace")
             if e.code == 429 and attempt < 3:
                 delay = 2 ** (attempt + 1) + __import__("random").uniform(0, 1)
                 print(f"429 hit, retrying in {delay:.1f}s... (attempt {attempt + 1}/3)")
@@ -95,7 +105,7 @@ def generate_with_llm(topic: str, model: str) -> str:
 
 def generate_tags_with_llm(topic: str, model: str) -> list[str]:
     """Use LLM to generate relevant tags for a topic."""
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("NVIDIA_API_KEY")
     is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
 
     if not api_key and not is_local:

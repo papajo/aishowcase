@@ -106,7 +106,7 @@ All admin routes require Basic auth (checked via `checkAdminAuth` in `lib/admin.
 
 ## Scripts
 
-- `scripts/auto_generate_post.py` — LLM-powered blog post generator
+- `scripts/auto_generate_post.py` — LLM-powered blog post generator (requires `NVIDIA_API_KEY`, uses `certifi` for SSL)
 - `scripts/publish_drafts.py` — Move `published: true` drafts from drafts/ to posts/
 - `scripts/weekly_digest.py` — Compile weekly newsletter digest
 - `.github/workflows/auto_generate_post.yml` — CI workflow triggering post generation
@@ -119,9 +119,9 @@ All admin routes require Basic auth (checked via `checkAdminAuth` in `lib/admin.
 | `ADMIN_USERNAME` | Basic auth for admin panel |
 | `ADMIN_PASSWORD` | Basic auth for admin panel |
 | `RESEND_API_KEY` | Email sending |
-| `OPENAI_API_KEY` | Post generation LLM |
-| `OPENAI_BASE_URL` | Custom LLM endpoint |
-| `OPENAI_MODEL` | Model name for generation |
+| `NVIDIA_API_KEY` | Post generation LLM |
+| `NVIDIA_BASE_URL` | Custom LLM endpoint |
+| `NVIDIA_MODEL` | Model name for generation |
 | `NEXT_PUBLIC_SITE_URL` | Canonical URL for OG/metadata |
 
 ## Styling Conventions
