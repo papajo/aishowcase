@@ -100,24 +100,31 @@ def convert_html_to_markdown(filepath: str) -> str | None:
 
 
 def convert_pdf_to_markdown(filepath: str) -> str | None:
-    """Convert PDF file to markdown with frontmatter via pandoc."""
+    """Convert PDF file to markdown with frontmatter via pdftotext."""
     try:
         result = subprocess.run(
-            ["pandoc", filepath, "-t", "markdown", "--wrap=none"],
+            ["pdftotext", "-layout", filepath, "-"],
             capture_output=True, text=True, timeout=60
         )
         if result.returncode != 0:
-            print(f"  ❌ pandoc error: {result.stderr[:200]}")
+            print(f"  ❌ pdftotext error: {result.stderr[:200]}")
             return None
 
         body = result.stdout.strip()
         if not body:
-            print(f"  ❌ pandoc produced empty output")
+            print(f"  ❌ pdftotext produced empty output")
             return None
 
-        # Try to extract title from first heading
-        title_match = re.search(r"^#+\s+(.+)$", body, re.MULTILINE)
-        title = title_match.group(1).strip() if title_match else ""
+        # Clean up excessive whitespace but preserve paragraph breaks
+        body = re.sub(r"[ \t]+", " ", body)
+        body = re.sub(r"\n{3,}", "\n\n", body)
+
+        # Try to extract title from first non-empty line
+        lines = [l.strip() for l in body.split("\n") if l.strip()]
+        title = lines[0] if lines else ""
+        # Truncate long titles
+        if len(title) > 100:
+            title = title[:97] + "..."
         if not title:
             title = slugify(os.path.basename(filepath)).replace("-", " ").title()
 
@@ -127,7 +134,7 @@ def convert_pdf_to_markdown(filepath: str) -> str | None:
             f'source: publish_incoming.py (pdf conversion)\ntags: ""\n---\n\n{body}\n'
         )
     except FileNotFoundError:
-        print("  ⚠️  pandoc not installed — run: brew install pandoc")
+        print("  ⚠️  pdftotext not installed — run: brew install poppler")
         return None
     except Exception as e:
         print(f"  ❌ PDF conversion failed: {e}")
