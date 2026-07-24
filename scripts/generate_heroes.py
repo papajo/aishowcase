@@ -7,13 +7,13 @@ Usage:
   python3 scripts/generate_heroes.py                          # Generate for all posts
   python3 scripts/generate_heroes.py --slug some-post-slug    # Generate for one post
   python3 scripts/generate_heroes.py --provider pollinations  # Use Pollinations.ai (free, default)
-  python3 scripts/generate_heroes.py --provider dalle3        # Use DALL·E 3 (requires OPENAI_API_KEY)
+  python3 scripts/generate_heroes.py --provider dalle3        # Use DALL·E 3 (requires NVIDIA_API_KEY or OPENAI_API_KEY)
   python3 scripts/generate_heroes.py --provider stability     # Use Stability AI (requires STABILITY_API_KEY)
   python3 scripts/generate_heroes.py --list                   # List all posts and their hero status
   python3 scripts/generate_heroes.py --missing                # Only generate for posts without heroes
 
 Env vars:
-  OPENAI_API_KEY      Required for Dall·E 3 provider
+  NVIDIA_API_KEY      Required for Dall·E 3 provider (or OPENAI_API_KEY as fallback)
   STABILITY_API_KEY   Required for Stability AI provider
   HEROES_WIDTH         Image width (default: 1200)
   HEROES_HEIGHT        Image height (default: 600)
@@ -88,7 +88,7 @@ TOPIC_STYLES: dict[str, str] = {
     "software-dev": (
         "A developer's workspace transformed into a holographic command center, "
         "floating code panels and IDE windows in translucent blue glass, "
-        "keyboard with neon backlight, dark ambient lighting, tech startup aesthetic"
+        "keyboard with neon backlight, dark ambient lighting, cyberpunk tech aesthetic"
     ),
     "time-latency": (
         "A temporal distortion visualization with glowing clock faces and speed lines, "
@@ -96,9 +96,9 @@ TOPIC_STYLES: dict[str, str] = {
         "cinematic time-lapse photography aesthetic"
     ),
     "edge-iot": (
-        "An industrial edge computing network spanning fog and mist, "
-        "connected sensor nodes glowing through atmospheric haze, "
-        "pipeline and refinery infrastructure with digital overlays, muted orange and steel tones"
+        "An industrial edge computing network with connected IoT sensor nodes "
+        "glowing through atmospheric haze, digital overlays on infrastructure, "
+        "neon blue and amber accents against dark industrial backdrop, cyberpunk aesthetic"
     ),
     "data-analytics": (
         "A futuristic data analytics dashboard rendered as a holographic display, "
@@ -120,19 +120,19 @@ TOPIC_STYLES: dict[str, str] = {
 # ── Topic detection ──────────────────────────────────────────────────────────
 
 TOPIC_PATTERNS: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"\b(agent|autonomous|automation|orchestrat)\b"), "ai-agent"),
+    (re.compile(r"\b(agent[sd]?|autonomous|automation|orchestrat)"), "ai-agent"),
     (re.compile(r"\b(autonomous|self.?driving|unattended)\b"), "ai-autonomous"),
-    (re.compile(r"\b(security|safety|hack|breach|incident|rogue|vulnerab)\b"), "ai-security"),
-    (re.compile(r"\b(multimodal|vision|image|video|audio|speech|sound)\b"), "multimodal"),
-    (re.compile(r"\b(llm|model|training|fine.?tune|quantization|distill|compress|transformer)\b"), "llm-model"),
+    (re.compile(r"\b(secur|safety|hack|breach|incident|rogue|vulnerab)"), "ai-security"),
+    (re.compile(r"\b(multimodal|vision|image[s]?|video|audio|speech|sound)\b"), "multimodal"),
+    (re.compile(r"\b(llm[s]?|model[s]?|training|fine.?tune|quantization|distill|compress|transformer)"), "llm-model"),
     (re.compile(r"\b(deep.?seek|r1|reasoning|think|logic|chain.?of.?thought)\b"), "deepseek"),
-    (re.compile(r"\b(rag|retrieval|search|index|semantic|embedding|chunk)\b"), "rag-retrieval"),
-    (re.compile(r"\b(vector|pinecone|embedding|nearest.?neighbor)\b"), "vector-db"),
-    (re.compile(r"\b(deploy|forward|engineer|dev|code|software|programming|developer)\b"), "software-dev"),
+    (re.compile(r"\b(rag|retrieval|search|index|semantic|embedding|chunk)"), "rag-retrieval"),
+    (re.compile(r"\b(vector[s]?|pinecone|embedding|nearest.?neighbor)\b"), "vector-db"),
+    (re.compile(r"\b(deploy|forward|engineer[sd]?|dev[s]?|cod(e|ing)|software|programming|developer)"), "software-dev"),
     (re.compile(r"\b(time|delay|latency|schedule|duration|response.?time)\b"), "time-latency"),
     (re.compile(r"\b(edge|iot|industrial|sensor|stream|manufacturing)\b"), "edge-iot"),
-    (re.compile(r"\b(analytics|dashboard|bi|report|metric|kpi|insight)\b"), "data-analytics"),
-    (re.compile(r"\b(prompt|instruction|context|attention|self.?attent|token)\b"), "prompt-engineering"),
+    (re.compile(r"\b(analytics|dashboard|bi|report[s]?|metric[s]?|kpi|insight)\b"), "data-analytics"),
+    (re.compile(r"\b(prompt[s]?|instruction[s]?|context|attention|self.?attent|token[s]?)\b"), "prompt-engineering"),
 ]
 
 def detect_topic(title: str, tags: list[str], excerpt: str) -> str:
@@ -149,13 +149,19 @@ def build_prompt(title: str, tags: list[str], excerpt: str) -> str:
     topic = detect_topic(title, tags, excerpt)
     base_style = TOPIC_STYLES.get(topic, TOPIC_STYLES["default"])
 
-    # Build a specific prompt incorporating the post title
+    # Enforce consistent visual identity across all topics
+    VISUAL_IDENTITY = (
+        "Consistent dark cyberpunk aesthetic: deep black/charcoal background with "
+        "electric blue, neon purple, and warm amber accent glows. "
+        "Atmospheric haze, volumetric light rays, subtle grid/tech patterns. "
+        "Cinematic depth of field, moody and premium feel."
+    )
+
     return (
-        f"A cinematic hero banner image for a tech blog post titled '{title}'. "
-        f"Theme: {topic.replace('-', ' ')}. "
-        f"{base_style} "
-        f"Clean composition, suitable for a website hero banner ({WIDTH}x{HEIGHT}), "
-        f"dark mode friendly, no text, no watermark, photorealistic digital art."
+        f"Hero banner for an AI/tech blog post titled '{title}'. {base_style} "
+        f"{VISUAL_IDENTITY} "
+        f"Clean composition, wide aspect ratio ({WIDTH}x{HEIGHT}), "
+        f"no text, no watermark, no logos, no UI elements, photorealistic digital art."
     )
 
 
@@ -224,9 +230,9 @@ def _generate_pollinations(prompt: str, slug: str) -> bytes | None:
 
 def _generate_dalle3(prompt: str, slug: str) -> bytes | None:
     """Generate image using OpenAI DALL·E 3."""
-    api_key = os.environ.get("OPENAI_API_KEY")
+    api_key = os.environ.get("NVIDIA_API_KEY") or os.environ.get("OPENAI_API_KEY")
     if not api_key:
-        print("  ⚠️  OPENAI_API_KEY not set, skipping DALL·E 3")
+        print("  ⚠️  NVIDIA_API_KEY not set, skipping DALL·E 3")
         return None
 
     print(f"  🎨 DALL·E 3: generating...", end="", flush=True)

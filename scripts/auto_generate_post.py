@@ -16,11 +16,8 @@ Env vars:
 """
 from __future__ import annotations
 import argparse, datetime as _dt, json, os, re, sys, urllib.request, urllib.error
-#fix applied
-import ssl
-import urllib.request
-import certifi  # Requires: pip install certifi
-# HERE IS THE DEFINITION:
+import ssl, certifi  # Requires: pip install certifi
+
 context = ssl.create_default_context(cafile=certifi.where())
 
 DEFAULT_MODEL = os.environ.get("NVIDIA_MODEL", "meta/llama-3.1-8b-instruct")
@@ -53,13 +50,26 @@ def get_existing_titles() -> set[str]:
 
 
 def is_duplicate(topic: str, existing: set[str]) -> bool:
-    t = topic.lower().strip()
-    if t in existing: return True
-    t_words = set(t.split())
+    STOP_WORDS = {"the", "a", "an", "of", "for", "and", "or", "in", "on", "to", "is",
+                  "vs", "vs.", "one", "how", "why", "with", "from", "that", "this", "it"}
+    def normalize(t: str) -> set[str]:
+        t = re.sub(r"[^a-z0-9\s]", "", t.lower().strip())
+        return {w for w in t.split() if w not in STOP_WORDS and len(w) > 2}
+
+    t_norm = normalize(topic)
+    t_lower = topic.lower().strip()
+
     for ex in existing:
-        e_words = set(ex.split())
-        if t_words and e_words and len(t_words & e_words) / max(len(t_words), len(e_words)) >= 0.7:
+        ex_lower = ex.lower().strip()
+        # Exact match (case-insensitive)
+        if t_lower == ex_lower:
             return True
+        # Normalized word overlap — catch "six" vs "Six", reworded titles, etc.
+        e_norm = normalize(ex)
+        if t_norm and e_norm:
+            overlap = len(t_norm & e_norm) / max(len(t_norm), len(e_norm))
+            if overlap >= 0.5:
+                return True
     return False
 
 
@@ -74,8 +84,27 @@ def generate_with_llm(topic: str, model: str) -> str:
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are a helpful technical writer for an AI tools showcase site."},
-            {"role": "user", "content": f"Write a concise, engaging journal/blog post (250-400 words) in Markdown about: {topic}. Include a short intro, 2-3 key points, and a closing takeaway. Do not include a top-level H1 title or frontmatter."},
+            {"role": "system", "content": (
+                "You are an expert technical writer for an AI tools showcase blog. "
+                "Write well-researched, factual articles with specific details, named tools/people/companies, "
+                "and real-world context. Avoid generic filler. Every claim should reference a source or example."
+            )},
+            {"role": "user", "content": (
+                f"Write a detailed blog post (400-600 words) in Markdown about: {topic}\n\n"
+                "STRICT STRUCTURE — follow this exact format:\n"
+                "1. Start with a ### heading as the intro title (NOT an H1 — no # prefix)\n"
+                "2. Opening paragraph — set context, name specific tools/companies/events involved\n"
+                "3. ### Key Takeaways section with 3-4 numbered bolded points, each with 2-3 sentences of depth\n"
+                "4. ### Conclusion section — 2-3 sentences summarizing the implication\n"
+                "5. A horizontal rule (---)\n"
+                "6. **References:** section with 3-5 numbered links in format: [Source Name](https://url)\n\n"
+                "RULES:\n"
+                "- Do NOT include a top-level H1 title or frontmatter\n"
+                "- Use inline references: mention sources naturally in the text (e.g., 'according to [Source]')\n"
+                "- Be specific: name tools, people, companies, dates where relevant\n"
+                "- No generic filler like 'In the realm of' or 'As we move forward'\n"
+                "- Write for a technical audience that values substance over fluff"
+            )},
         ],
         "temperature": 0.7,
     }
@@ -91,15 +120,13 @@ def generate_with_llm(topic: str, model: str) -> str:
             with urllib.request.urlopen(req, timeout=60, context=context) as resp:
                 return json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
         except urllib.error.HTTPError as e:
-            #body = e.read().decode("utf-8", errors="replace")
-            # Fix applied here: decode using "utf-8"
             error_body = e.read().decode("utf-8", errors="replace")
             if e.code == 429 and attempt < 3:
                 delay = 2 ** (attempt + 1) + __import__("random").uniform(0, 1)
                 print(f"429 hit, retrying in {delay:.1f}s... (attempt {attempt + 1}/3)")
                 __import__("time").sleep(delay)
                 continue
-            raise RuntimeError(f"LLM API HTTP {e.code}: {body[:200]}")
+            raise RuntimeError(f"LLM API HTTP {e.code}: {error_body[:200]}")
     raise RuntimeError("Max retries exceeded")
 
 
@@ -117,8 +144,13 @@ def generate_tags_with_llm(topic: str, model: str) -> list[str]:
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You generate short relevant tags for blog posts. Return ONLY a comma-separated list of 3-5 tags, nothing else. Example: AI, LLM, RAG, Productivity"},
-            {"role": "user", "content": f"Generate 3-5 short tags for a blog post about: {topic}"},
+            {"role": "system", "content": (
+                "You generate specific, descriptive tags for technical blog posts. "
+                "Return ONLY a comma-separated list of 3-5 tags, nothing else. "
+                "Tags should be specific to the topic, not generic. "
+                "Example: GitHub Copilot, Code Review, AI Pair Programming, Developer Productivity"
+            )},
+            {"role": "user", "content": f"Generate 3-5 specific tags for a blog post about: {topic}"},
         ],
         "temperature": 0.5,
     }
@@ -129,7 +161,7 @@ def generate_tags_with_llm(topic: str, model: str) -> list[str]:
 
     for attempt in range(4):
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=30, context=context) as resp:
                 raw = json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
                 return [t.strip() for t in raw.split(",") if t.strip()]
         except urllib.error.HTTPError as e:
