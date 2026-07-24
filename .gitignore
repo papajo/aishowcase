@@ -24,6 +24,8 @@
 .DS_Store
 *.pem
 .session-notes*
+__pycache__/
+.mimocode/
 
 # auto-generated hero images (regeneratable via scripts/generate_heroes.py)
 # Comment out to version images on Vercel deploys
