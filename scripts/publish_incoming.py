@@ -83,7 +83,9 @@ def convert_html_to_markdown(filepath: str) -> str | None:
         if not title:
             title = slugify(os.path.basename(filepath)).replace("-", " ").title()
 
-        body = markdownify.markdownify(html, strip=["script", "style", "nav", "footer", "header"])
+        # Remove <style>, <script>, <nav>, <footer>, <header> blocks entirely (content + tags)
+        html = re.sub(r"<(style|script|nav|footer|header)\b[^>]*>.*?</\1>", "", html, flags=re.DOTALL | re.IGNORECASE)
+        body = markdownify.markdownify(html)
         body = re.sub(r"\n{3,}", "\n\n", body).strip()
 
         now = _dt.datetime.now(_dt.timezone.utc).isoformat()
