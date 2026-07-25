@@ -17,6 +17,34 @@ All methods end the same way: **Vercel auto-deploys from `main` push**. No manua
 
 ---
 
+## Folder Structure (Important)
+
+Articles and hero images live in **separate directories**. They are matched by slug (the filename without extension).
+
+```
+content/
+├── incoming/          ← Drop zone: new posts + images before publishing
+├── posts/             ← Published articles (.md files)
+└── drafts/            ← Draft articles (not published yet)
+
+public/heroes/
+├── manual/            ← Custom hero images (highest priority)
+│   └── {slug}.webp    ← Must match the post filename exactly
+└── auto/              ← AI-generated hero images (fallback)
+    └── {slug}.webp
+```
+
+**Key rule:** The hero image filename must match the post slug. For a post at `content/posts/my-great-post.md`, the hero goes in `public/heroes/manual/my-great-post.webp`.
+
+**Retrofitting a hero image** (adding one to an already-published post):
+```bash
+# Just move it to the right folder with the right name
+mv path/to/image.webp public/heroes/manual/{post-slug}.webp
+git add public/heroes/manual/ && git commit -m "add: hero image for post" && git push
+```
+
+---
+
 ## Method 1: New Post (From Scratch)
 
 One command creates the file with correct frontmatter, opens your editor, and optionally pushes when done.
