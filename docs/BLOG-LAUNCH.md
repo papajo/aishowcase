@@ -6,30 +6,29 @@ How to publish a blog post with a hero image to `aishowcase.qzz.io`.
 
 | Method | Command | Hero Image |
 |--------|---------|------------|
-| **Drop folder** (manual post) | Push `.md` + image to `content/incoming/` on `main` | Place alongside or reference in frontmatter |
-| **Research pipeline** | `python3 scripts/research_and_post.py --topic "X" --publish` | Auto-generated |
+| **New post (from scratch)** | `python3 scripts/new_post.py -t "Title" -g "Tags"` | Place alongside or generate later |
+| **Pull Odysseus report** | `python3 scripts/pull_from_odysseus.py rp-<id>` | Auto-extracted from report |
+| **Drop HTML/PDF from Odysseus** | Drop in `content/incoming/`, push to `main` | Auto-extracted from report |
 | **Auto-generate** | `python3 scripts/auto_generate_post.py --topic "X" --publish true` | Auto-generated |
+| **Research pipeline** | `python3 scripts/research_and_post.py --topic "X" --publish` | Auto-generated |
 | **Admin panel** | Navigate to `/admin/journal/new` | Upload via UI |
 
 All methods end the same way: **Vercel auto-deploys from `main` push**. No manual deploy needed.
 
 ---
 
-## Method 1: Drop Folder (Recommended for Manual Posts)
+## Method 1: New Post (From Scratch)
 
-The most common path. One command creates the file with correct frontmatter, opens your editor, and optionally pushes when done.
-
-### Quick start
+One command creates the file with correct frontmatter, opens your editor, and optionally pushes when done.
 
 ```bash
 python3 scripts/new_post.py --title "Why AI Agents Fail" --tags "AI, Agents, Production"
 ```
 
-This creates the file in `content/incoming/`, opens it in `$EDITOR`, and you just write the body. No frontmatter to type — date, slug, and required fields are all computed.
-
-### With auto-push (fully automated)
+Opens `$EDITOR` — you just write the body. Date, slug, and required fields are all computed. No frontmatter typos possible.
 
 ```bash
+# With auto-push (fully automated)
 python3 scripts/new_post.py -t "Why AI Agents Fail" -g "AI, Agents" --push
 ```
 
@@ -44,13 +43,10 @@ After you save and close the editor, it commits and pushes → Vercel auto-deplo
 | `--push` | Auto git add + commit + push after editing |
 | `--draft` | Set `published: false` (default: true) |
 
-### Step 2: Add a hero image (optional)
-
-Three options, in order of preference:
+### Add a hero image (optional)
 
 **Option A — Custom image alongside the post:**
 ```bash
-# Place in content/incoming/ with same base name
 cp my-hero.webp content/incoming/my-post.webp    # matches my-post.md
 ```
 
@@ -60,57 +56,105 @@ cp my-hero.webp content/incoming/my-post.webp    # matches my-post.md
 hero: custom-image-name.webp
 ---
 ```
-Then place `custom-image-name.webp` in `content/incoming/`.
 
 **Option C — Skip (auto-generated fallback):**
-If no hero image is provided, the site uses a topic-matched SVG illustration. You can generate an AI hero later with `python3 scripts/generate_heroes.py --slug my-post-slug`.
-
-### Step 3: Publish
-
-If you used `--push`, you're done — it already published.
-
-Otherwise:
+Site uses a topic-matched SVG. Generate an AI hero later with:
 ```bash
-git add content/incoming/
-git commit -m "New post: Your Post Title"
-git push
+python3 scripts/generate_heroes.py --slug my-post-slug
 ```
-
-The `publish-incoming.yml` GitHub Action runs `publish_incoming.py` which:
-1. Validates frontmatter (title, date, tags required)
-2. Moves the `.md` file to `content/posts/`
-3. Moves the hero image to `public/heroes/manual/`
-4. Commits and pushes → Vercel auto-deploys
-
-**Option B — Run locally first (dry run):**
-```bash
-python3 scripts/publish_incoming.py --list       # see what's waiting
-python3 scripts/publish_incoming.py --dry-run    # validate without moving
-python3 scripts/publish_incoming.py              # process all incoming
-```
-
-### Frontmatter Reference
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `title` | Yes | Post title |
-| `date` | Yes | ISO 8601 datetime |
-| `tags` | Yes | Comma-separated tags |
-| `published` | No | `true` to publish immediately (default: false) |
-| `hero` | No | Explicit hero image filename |
-| `excerpt` | No | Short description for card previews |
 
 ---
 
-## Method 2: Research Pipeline (Odysseus)
+## Method 2: Pull Odysseus Report (Recommended)
+
+Pulls an existing research report from Odysseus, converts HTML → markdown, drops into `content/incoming/`.
+
+### Prerequisites
+
+- Odysseus Docker running (`docker compose up` in the Odysseus repo at `http://127.0.0.1:7001`)
+
+### Find your report ID
+
+The ID is the `rp-xxxxx` part from the Odysseus report URL:
+```
+http://127.0.0.1:7001/report/rp-a6252bffa18d
+                              ^^^^^^^^^^^^^^^ report ID
+```
+
+### List available reports
+
+```bash
+python3 scripts/pull_from_odysseus.py --list
+```
+
+### Test run (safe — no publish)
+
+```bash
+python3 scripts/pull_from_odysseus.py rp-<report-id>
+```
+
+This drops the file into `content/incoming/` and stops. Nothing gets published. You can inspect the file before deciding.
+
+### Publish for real
+
+```bash
+python3 scripts/pull_from_odysseus.py rp-<report-id> --publish
+```
+
+This pulls the report AND runs `publish_incoming.py` which moves it to `content/posts/`. Then push:
+
+```bash
+git add -A && git commit -m "New post: Your Title" && git push
+```
+
+### Reset after accidental publish
+
+Move the file back from `content/posts/` to `content/incoming/`:
+
+```bash
+mv content/posts/the-report-slug.md content/incoming/
+git add -A && git commit -m "Reset: move report back to incoming" && git push
+```
+
+---
+
+## Method 3: Drop HTML/PDF from Odysseus
+
+If you saved an HTML file from Odysseus (use "Download HTML", not "Save as PDF" — PDF export produces empty files):
+
+1. Drop the `.html` file into `content/incoming/`
+2. Optionally drop a hero image (`.webp`, `.png`, `.jpg`) with the same base name
+3. Push to `main` — GitHub Action handles the rest
+
+```bash
+git add content/incoming/
+git commit -m "New post: Your Title"
+git push
+```
+
+The pipeline auto-converts HTML → markdown and cleans Odysseus UI artifacts (toolbar buttons, research metadata, JavaScript, "Discuss" button, "Generated by" footer).
+
+**Note:** "Save as PDF" from Odysseus produces 0-byte files — always use "Download HTML" instead.
+
+---
+
+## Method 4: Auto-Generate
+
+Uses NVIDIA API to generate content + hero image.
+
+```bash
+set -a && source .env.local && set +a
+python3 scripts/auto_generate_post.py --topic "Your topic" --publish true
+```
+
+Then push to deploy.
+
+---
+
+## Method 5: Research Pipeline
 
 One command: researches a topic via Odysseus, writes the post, publishes it.
 
-### Prerequisites
-- Odysseus Docker running (`docker compose up` in the Odysseus repo)
-- `NVIDIA_API_KEY` set
-
-### Run it
 ```bash
 ODYSSEUS_INTERNAL_TOKEN=dev-blog-integration-token \
 python3 scripts/research_and_post.py \
@@ -124,23 +168,17 @@ Then push:
 git add -A && git commit -m "New post: Your topic" && git push
 ```
 
-### Pull an existing Odysseus report
-```bash
-python3 scripts/pull_from_odysseus.py rp-<report-id> --publish
-```
-
 ---
 
-## Method 3: Auto-Generate
+## Publish Locally (Dry Run)
 
-Uses NVIDIA API to generate content + hero image.
+Preview what `publish_incoming.py` will do before pushing:
 
 ```bash
-set -a && source .env.local && set +a
-python3 scripts/auto_generate_post.py --topic "Your topic" --publish true
+python3 scripts/publish_incoming.py --list       # see what's waiting
+python3 scripts/publish_incoming.py --dry-run    # validate without moving
+python3 scripts/publish_incoming.py              # process all incoming
 ```
-
-Then push to deploy.
 
 ---
 
@@ -169,6 +207,19 @@ Default provider is Pollinations.ai (free, no key needed).
 
 ---
 
+## Frontmatter Reference
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `title` | Yes | Post title |
+| `date` | Yes | ISO 8601 datetime |
+| `tags` | Yes | Comma-separated tags |
+| `published` | No | `true` to publish immediately (default: false) |
+| `hero` | No | Explicit hero image filename |
+| `excerpt` | No | Short description for card previews |
+
+---
+
 ## Deployment
 
 - **Vercel auto-deploys from `main` push** — no manual `npx vercel --prod` needed
@@ -181,12 +232,14 @@ Default provider is Pollinations.ai (free, no key needed).
 
 | Symptom | Fix |
 |---------|-----|
-| Post not appearing | Check `published: true` in frontmatter. Check `python3 scripts/publish_incoming.py --list` |
+| Post not appearing | Check `published: true` in frontmatter. Run `python3 scripts/publish_incoming.py --list` |
 | Hero image not showing | Verify file is in `public/heroes/manual/` or `public/heroes/auto/` with matching slug |
 | GitHub Action didn't trigger | Must push to `main` branch, file must be in `content/incoming/` |
 | Duplicate post error | Check existing titles: `python3 scripts/publish_incoming.py --list` |
-| Hero mismatch (image exists but not used) | The script normalizes underscores/hyphens and uses word-overlap matching. Check slug similarity. |
+| Hero mismatch | Script normalizes underscores/hyphens and uses word-overlap matching. Check slug similarity. |
+| Raw CSS/HTML in post | `publish_incoming.py` now strips `<style>`/`<script>` blocks. Pull from Odysseus API instead of pasting HTML manually. |
+| Odysseus PDF export empty | Known bug. Use "Download HTML" or `pull_from_odysseus.py` instead. |
 
 ---
 
-**Evidence**: `CONTENT-WORKFLOW.md`, `docs/hero-images.md`, `scripts/WORKFLOW.md`, `scripts/publish_incoming.py`, `.github/workflows/publish-incoming.yml`, `scripts/generate_heroes.py`
+**Evidence**: `CONTENT-WORKFLOW.md`, `docs/hero-images.md`, `scripts/WORKFLOW.md`, `scripts/publish_incoming.py`, `scripts/pull_from_odysseus.py`, `scripts/new_post.py`, `.github/workflows/publish-incoming.yml`, `scripts/generate_heroes.py`
