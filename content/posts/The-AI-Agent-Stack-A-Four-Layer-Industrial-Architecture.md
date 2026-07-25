@@ -6,32 +6,6 @@ source: publish_incoming.py (html conversion)
 tags: ""
 ---
 
-![](https://aiagentsdirectory.com/landscape-social-cover.jpg)
-
-[Executive Summary](#executive-summary)
-[1. The Model Layer: The Commoditizing Foundation](#1-the-model-layer-the-commoditizing-foundation)
-[2. The Harness Layer: The Execution Runtime](#2-the-harness-layer-the-execution-runtime)
-[3. The Orchestration Layer: The Brain and the Battleground](#3-the-orchestration-layer-the-brain-and-the-battleground)
-[4. The Managed Infrastructure & Tooling Layer: Production-Grade Reality](#4-the-managed-infrastructure-tooling-layer-production-grade-reality)
-[II. Market Categorization by Application: Horizontal Breadth vs. Vertical Depth](#ii-market-categorization-by-application-horizontal-breadth-vs-vertical-depth)
-[1. Horizontal Agent Categories: The "General Purpose" Contenders](#1-horizontal-agent-categories-the-general-purpose-contenders)
-[2. Vertical Agent Categories: The "Deep Work" Moats](#2-vertical-agent-categories-the-deep-work-moats)
-[III. The 2026 Funding Leaderboard: Valuation as a Signal of Market Truth](#iii-the-2026-funding-leaderboard-valuation-as-a-signal-of-market-truth)
-[IV. Enterprise Adoption & Economic Trends: The New Physics of Software Business](#iv-enterprise-adoption-economic-trends-the-new-physics-of-software-business)
-[1. Deployment Metrics: The "67% Production" Inflection Point](#1-deployment-metrics-the-67-production-inflection-point)
-[2. Pricing & Business Models: The Death of the Seat](#2-pricing-business-models-the-death-of-the-seat)
-[3. Market Valuation (AI Software Segment): The $120B TAM Split](#3-market-valuation-ai-software-segment-the-120b-tam-split)
-[V. Key Players & Companies: The 2026 Power Map](#v-key-players-companies-the-2026-power-map)
-[Model Providers (The Utilities)](#model-providers-the-utilities)
-[Orchestration & Frameworks (The Brains)](#orchestration-frameworks-the-brains)
-[Infrastructure, Observability & Platforms (The Production Layer)](#infrastructure-observability-platforms-the-production-layer)
-[Application Layer: The Category Leaders](#application-layer-the-category-leaders)
-[VI. Synthesis & Comparative Analysis: Where the Sources Agree and Diverge](#vi-synthesis-comparative-analysis-where-the-sources-agree-and-diverge)
-[Points of Strong Consensus](#points-of-strong-consensus)
-[Points of Tension / Nuance](#points-of-tension-nuance)
-[VII. The 2026 Market Map: A Unified Taxonomy](#vii-the-2026-market-map-a-unified-taxonomy)
-[VIII. Conclusion: The Map Is the Territory](#viii-conclusion-the-map-is-the-territory)
-
 Executive Summary
 -----------------
 
