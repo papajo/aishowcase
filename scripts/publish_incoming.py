@@ -59,16 +59,28 @@ def slugify(text: str) -> str:
     return text.strip("-")[:60] or "post"
 
 
+def _clean_title(title: str) -> str:
+    """Strip URLs, localhost references, and Odysseus artifacts from a title."""
+    # Remove URLs (http/https/localhost)
+    title = re.sub(r"https?://[^\s]+", "", title)
+    title = re.sub(r"localhost:\d+/[^\s]+", "", title)
+    # Remove Odysseus research metadata that leaks into titles
+    title = re.sub(r"\d+[\.\s]+\d+s?\s+Duration.*$", "", title, flags=re.IGNORECASE)
+    # Collapse whitespace and strip
+    title = re.sub(r"\s+", " ", title).strip()
+    return title
+
+
 def extract_title_from_html(html_content: str) -> str:
     """Extract title from HTML content."""
     # Try <title> tag
     match = re.search(r"<title[^>]*>(.*?)</title>", html_content, re.DOTALL | re.IGNORECASE)
     if match:
-        return match.group(1).strip()
+        return _clean_title(match.group(1))
     # Try first <h1> tag
     match = re.search(r"<h1[^>]*>(.*?)</h1>", html_content, re.DOTALL | re.IGNORECASE)
     if match:
-        return re.sub(r"<[^>]+>", "", match.group(1)).strip()
+        return _clean_title(re.sub(r"<[^>]+>", "", match.group(1)))
     return ""
 
 
@@ -116,6 +128,13 @@ def convert_html_to_markdown(filepath: str) -> str | None:
         html = re.sub(r"<(style|script|nav|footer|header)\b[^>]*>.*?</\1>", "", html, flags=re.DOTALL | re.IGNORECASE)
         body = markdownify.markdownify(html)
         body = _clean_odysseus_artifacts(body)
+        # Clean URLs from the first heading (title line) — don't touch body links
+        lines = body.split("\n")
+        for i, line in enumerate(lines):
+            if line.strip().startswith("#") or (i < 3 and line.strip()):
+                lines[i] = _clean_title(line)
+                break
+        body = "\n".join(lines)
         body = re.sub(r"\n{3,}", "\n\n", body).strip()
 
         now = _dt.datetime.now(_dt.timezone.utc).isoformat()
@@ -153,7 +172,7 @@ def convert_pdf_to_markdown(filepath: str) -> str | None:
 
         # Try to extract title from first non-empty line
         lines = [l.strip() for l in body.split("\n") if l.strip()]
-        title = lines[0] if lines else ""
+        title = _clean_title(lines[0]) if lines else ""
         # Truncate long titles
         if len(title) > 100:
             title = title[:97] + "..."
