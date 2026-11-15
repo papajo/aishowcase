@@ -139,7 +139,28 @@ def generate_with_llm(topic: str, model: str) -> str:
     for attempt in range(max_retries):
         try:
             with urllib.request.urlopen(req, timeout=300, context=context) as resp:
-                return json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
+                data = json.loads(resp.read().decode())
+                msg = data["choices"][0]["message"]
+                content = msg.get("content")
+                if content:
+                    return content.strip()
+                # Empty reply: log what the API actually returned so the
+                # failure is diagnosable, then retry — an empty completion
+                # is often transient (or a reasoning-only reply).
+                diag = {
+                    "finish_reason": data["choices"][0].get("finish_reason"),
+                    "message_keys": sorted(msg.keys()),
+                    "has_reasoning": bool(msg.get("reasoning_content")),
+                    "reasoning_preview": (msg.get("reasoning_content") or "")[:300],
+                    "usage": data.get("usage"),
+                }
+                print(f"LLM API returned empty content: {diag}")
+                if attempt < max_retries - 1:
+                    delay = retry_delay * (attempt + 1)
+                    print(f"Retrying after empty reply in {delay}s... (attempt {attempt + 1}/{max_retries})")
+                    __import__("time").sleep(delay)
+                    continue
+                raise RuntimeError(f"LLM API returned empty content after {max_retries} attempts: {diag}")
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8", errors="replace")
             if e.code == 429 and attempt < 3:
