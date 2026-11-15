@@ -1,0 +1,115 @@
+name: Scheduled Post
+
+# Automated fresh article posting, with minimal human intervention.
+# See docs/AUTO-POSTING-PLAN.md for the full plan, the decisions behind it,
+# and how to change the cadence or switch from draft mode to auto-publish.
+#
+# How one run works:
+#   1. Pick the next unchecked topic from content/topics-queue.md
+#      (fails loudly if the queue is empty — it never invents a topic).
+#   2. Generate the post with scripts/auto_generate_post.py.
+#      The script refuses to write a stub when NVIDIA_API_KEY is missing
+#      (a scheduled run once wrote "Stub content" drafts in June 2026).
+#      No --force: the built-in duplicate-title check stays on.
+#   3. Check the post: no stub markers, >= 150 words, every reference
+#      link must resolve. A failed check stops the run before anything
+#      is committed, and the topic stays in the queue.
+#   4. Only then mark the topic used and commit + push. Vercel
+#      auto-deploys on push to main.
+#   5. Draft mode (default): the post lands in content/drafts/ for a
+#      one-tap publish. Flip `publish` to true (dispatch input, or the
+#      env below) only for full auto-publish — see the plan doc first.
+#
+# Secrets required in the repo (Settings → Secrets and variables → Actions):
+#   NVIDIA_API_KEY — nvapi- key from build.nvidia.com (free tier, $0)
+#   NVIDIA_MODEL   — model id; the script default (meta/llama-3.1-8b-instruct)
+#                    was listed as retired in Aug 2026, so set this to a
+#                    model that answers today and re-check it on the
+#                    first smoke-test run.
+#   NVIDIA_BASE_URL — optional, defaults to https://integrate.api.nvidia.com/v1
+
+on:
+  schedule:
+    # Mon / Wed / Fri, 14:00 UTC = 09:00 EST (10:00 EDT)
+    - cron: "0 14 * * 1,3,5"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish immediately (true) or save as draft (false)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scheduled-post
+  cancel-in-progress: false
+
+jobs:
+  scheduled-post:
+    runs-on: ubuntu-latest
+    env:
+      # Draft by default. Change to "true" only when auto-publish is
+      # explicitly approved — see docs/AUTO-POSTING-PLAN.md.
+      PUBLISH: ${{ github.event.inputs.publish || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f scripts/requirements.txt ]; then
+            pip install -r scripts/requirements.txt
+          fi
+
+      - name: Pick next topic
+        id: topic
+        run: |
+          TOPIC=$(python scripts/pick_next_topic.py)
+          echo "topic=$TOPIC" >> $GITHUB_OUTPUT
+          echo "Topic: $TOPIC"
+
+      - name: Generate post
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          NVIDIA_BASE_URL: ${{ secrets.NVIDIA_BASE_URL }}
+          NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
+        run: |
+          python scripts/auto_generate_post.py \
+            --topic "${{ steps.topic.outputs.topic }}" \
+            --publish "$PUBLISH"
+
+      - name: Check generated post
+        run: |
+          NEWEST=$(ls -t content/posts/*.md content/drafts/*.md 2>/dev/null | head -1)
+          echo "Checking: $NEWEST"
+          python scripts/check_post_links.py "$NEWEST"
+
+      - name: Mark topic used
+        run: python scripts/pick_next_topic.py --mark-used
+
+      - name: Commit and push
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes generated in this run"
+            exit 0
+          fi
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "chore: scheduled post — ${{ steps.topic.outputs.topic }} [automated]"
+          git push
