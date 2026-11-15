@@ -141,7 +141,20 @@ python3 scripts/auto_generate_post.py --topic "Claude Code review" --publish tru
 python3 scripts/auto_generate_post.py --list
 ```
 
-**Prerequisites**: The script requires `NVIDIA_API_KEY` to generate real content. Without it, it falls back to stub mode. The key is stored in `.env.local` — load it before running:
+**Prerequisites**: The script requires `NVIDIA_API_KEY` to generate real content. Without it, it now refuses to run (unless `--allow-stub true` is passed for a local test draft) — a scheduled run without a key used to write "Stub content" drafts (June 2026).
+
+### Scheduled Posting
+
+See `docs/AUTO-POSTING-PLAN.md` for the full plan. The short version:
+`.github/workflows/scheduled-post.yml` runs Mon/Wed/Fri 09:00 EST, picks
+the next topic from `content/topics-queue.md`, generates with
+`auto_generate_post.py`, checks the post (no stubs, ≥150 words, every
+reference link resolves), and only then marks the topic used and
+commits. Draft mode is the default — a generated post lands in
+`content/drafts/` for a one-tap publish; full auto-publish is a
+one-word flip once it is explicitly approved.
+
+### Local Usage
 
 ```bash
 set -a && source .env.local && set +a
