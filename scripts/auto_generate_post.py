@@ -124,6 +124,10 @@ def generate_with_llm(topic: str, model: str) -> str:
             )},
         ],
         "temperature": 0.7,
+        # Bound the output: a 400-600 word article needs ~600-900 tokens.
+        # Without a cap, a slow free-tier endpoint can spend 5+ minutes
+        # generating a long response and the read times out.
+        "max_tokens": 1500,
     }
     headers = {"Content-Type": "application/json", "User-Agent": "auto-generate-post/1.0"}
     if api_key: headers["Authorization"] = f"Bearer {api_key}"
