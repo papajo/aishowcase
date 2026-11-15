@@ -259,6 +259,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--publish", default="false", help="true/false: mark published")
     p.add_argument("--model", default=DEFAULT_MODEL)
     p.add_argument("--force", default="false", help="Skip duplicate check")
+    p.add_argument("--allow-stub", default="false",
+                   help="true/false: allow stub placeholder output when no API key is set. "
+                        "Default false: the run fails instead of writing a stub. "
+                        "A scheduled run must never publish a stub — that already happened "
+                        "once (June 2026 cron drafts).")
     p.add_argument("--list", action="store_true", help="List all posts")
     p.add_argument("--tags", default=None, help="Comma-separated tags (auto-generated if omitted)")
     p.add_argument("--rename", nargs=2, metavar=("OLD", "NEW"), help="Rename a post")
@@ -269,6 +274,13 @@ def main(argv: list[str] | None = None) -> int:
     if not args.topic: p.error("--topic is required (or use --list / --rename)")
 
     published = args.publish.lower() in ("1", "true", "yes")
+    allow_stub = args.allow_stub.lower() in ("1", "true", "yes")
+    is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
+    if not os.environ.get("NVIDIA_API_KEY") and not is_local and not allow_stub:
+        print("ERROR: NVIDIA_API_KEY is not set and --allow-stub is false, so "
+              "refusing to generate a stub post. Set the key or pass "
+              "--allow-stub true for a local test draft.", file=sys.stderr)
+        return 1
     if not args.force.lower() in ("1", "true", "yes") and is_duplicate(args.topic, get_existing_titles()):
         print(f"ERROR: Similar post already exists: {args.topic!r}. Use --force true to override.")
         return 1
