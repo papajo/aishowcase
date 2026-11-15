@@ -20,8 +20,8 @@ import ssl, certifi  # Requires: pip install certifi
 
 context = ssl.create_default_context(cafile=certifi.where())
 
-DEFAULT_MODEL = os.environ.get("NVIDIA_MODEL", "meta/llama-3.1-8b-instruct")
-BASE_URL = os.environ.get("NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1")
+DEFAULT_MODEL = os.environ.get("NVIDIA_MODEL") or "meta/llama-3.1-8b-instruct"
+BASE_URL = os.environ.get("NVIDIA_BASE_URL") or "https://integrate.api.nvidia.com/v1"
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONTENT_DIR = os.path.join(PROJECT_ROOT, "content")
 DRAFTS_DIR = os.path.join(CONTENT_DIR, "drafts")
