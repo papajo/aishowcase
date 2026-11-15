@@ -134,7 +134,7 @@ def generate_with_llm(topic: str, model: str) -> str:
     retry_delay = 5  # seconds to wait before trying again
     for attempt in range(max_retries):
         try:
-            with urllib.request.urlopen(req, timeout=60, context=context) as resp:
+            with urllib.request.urlopen(req, timeout=300, context=context) as resp:
                 return json.loads(resp.read().decode())["choices"][0]["message"]["content"].strip()
         except urllib.error.HTTPError as e:
             error_body = e.read().decode("utf-8", errors="replace")
@@ -144,6 +144,15 @@ def generate_with_llm(topic: str, model: str) -> str:
                 __import__("time").sleep(delay)
                 continue
             raise RuntimeError(f"LLM API HTTP {e.code}: {error_body[:200]}")
+        except (TimeoutError, urllib.error.URLError) as e:
+            # Free hosted endpoints can be slow or queued; a 60s read timeout
+            # was too short for a long article from a large model. Retry.
+            if attempt < max_retries - 1:
+                delay = retry_delay * (attempt + 1)
+                print(f"LLM API timeout ({e}), retrying in {delay}s... (attempt {attempt + 1}/{max_retries})")
+                __import__("time").sleep(delay)
+                continue
+            raise RuntimeError(f"LLM API timed out after {max_retries} attempts: {e}")
     raise RuntimeError("Max retries exceeded")
 
 
