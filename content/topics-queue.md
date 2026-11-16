@@ -10,7 +10,7 @@ Format: one topic per line, `- [ ] Topic title`. Keep topics specific —
 a named tool, a comparison, or a concrete technique — not generic themes.
 
 - [x] Pinecone vs Weaviate vs Qdrant: picking a vector database for a small RAG app
-- [ ] Claude Code vs Cursor: which AI coding assistant earns its $20 a month
+- [x] Claude Code vs Cursor: which AI coding assistant earns its $20 a month
 - [ ] How I built a private RAG assistant that answers only from my own documents
 - [ ] BM25 plus embeddings: why hybrid search beats pure vector search for technical docs
 - [ ] Chunking strategy for RAG: 500 tokens with 50 overlap, and when to break the rule
