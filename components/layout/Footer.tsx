@@ -72,6 +72,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/demos" className="text-sm text-[oklch(0.5_0.03_40)] hover:text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.65_0.03_45)] dark:hover:text-[oklch(0.92_0.02_60)] transition-colors">
+                  Live Demos
+                </Link>
+              </li>
+              <li>
                 <a href="/feed.xml" className="text-sm text-[oklch(0.5_0.03_40)] hover:text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.65_0.03_45)] dark:hover:text-[oklch(0.92_0.02_60)] transition-colors">
                   RSS Feed
                 </a>
