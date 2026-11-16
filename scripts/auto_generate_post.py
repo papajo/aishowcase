@@ -15,7 +15,7 @@ Env vars:
   ADMIN_API_TOKEN   Optional, bearer token for ADMIN_API_URL
 """
 from __future__ import annotations
-import argparse, datetime as _dt, json, os, re, sys, urllib.request, urllib.error
+import argparse, datetime as _dt, json, os, re, sys, urllib.request, urllib.error, urllib.parse
 import ssl, certifi  # Requires: pip install certifi
 
 context = ssl.create_default_context(cafile=certifi.where())
@@ -183,6 +183,40 @@ def generate_with_llm(topic: str, model: str) -> str:
     raise RuntimeError("Max retries exceeded")
 
 
+def _url_alive(url: str) -> bool:
+    """Return True if url responds with 2xx/3xx or bot-block/rate-limit (401/403/429)."""
+    for method in ("HEAD", "GET"):
+        req = urllib.request.Request(url, method=method, headers={"User-Agent": "aishowcase-link-check/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=15, context=context):
+                return True
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403, 429):
+                return True
+            return False
+        except Exception:
+            if method == "HEAD":
+                continue
+            return False
+    return False
+
+
+def sanitize_reference_urls(body: str) -> str:
+    """Replace dead guessed sub-path URLs with their verified root URL if alive."""
+    urls = sorted(set(re.findall(r"https?://[^\s)\"'<>]+", body)))
+    for raw_url in urls:
+        clean_url = raw_url.rstrip(".,;")
+        if _url_alive(clean_url):
+            continue
+        parts = urllib.parse.urlsplit(clean_url)
+        if parts.path and parts.path != "/":
+            root_url = f"{parts.scheme}://{parts.netloc}/"
+            if _url_alive(root_url):
+                print(f"Replacing dead sub-path {clean_url} -> {root_url}")
+                body = body.replace(clean_url, root_url)
+    return body
+
+
 def generate_tags_with_llm(topic: str, model: str) -> list[str]:
     """Use LLM to generate relevant tags for a topic."""
     api_key = os.environ.get("NVIDIA_API_KEY")
@@ -322,6 +356,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     body = generate_with_llm(args.topic, args.model)
+    body = sanitize_reference_urls(body)
 
     # Determine tags: CLI arg > LLM-generated
     if args.tags:
