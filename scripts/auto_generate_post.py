@@ -118,7 +118,7 @@ def generate_with_llm(topic: str, model: str) -> str:
                 "- Do NOT repeat the topic title as the ### heading — use a creative subtitle instead\n"
                 "- Every key takeaway MUST have at least one sub-bullet with specific details\n"
                 "- Include inline references [Source N] in the key takeaways\n"
-                "- References section must have 3-5 entries with descriptive names and real-looking URLs\n"
+                "- References section must have 3-5 entries with descriptive names and real, verified URLs (use official product homepages or top-level documentation roots like https://www.pinecone.io/ or https://qdrant.tech/documentation/ — NEVER guess deep sub-paths)\n"
                 "- Use real company names, tool names, and technical terms — not vague generalizations\n"
                 "- Aim for 400-600 words total"
             )},
