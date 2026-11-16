@@ -9,7 +9,7 @@ inventing a topic — add more lines, don't let it guess.
 Format: one topic per line, `- [ ] Topic title`. Keep topics specific —
 a named tool, a comparison, or a concrete technique — not generic themes.
 
-- [ ] Pinecone vs Weaviate vs Qdrant: picking a vector database for a small RAG app
+- [x] Pinecone vs Weaviate vs Qdrant: picking a vector database for a small RAG app
 - [ ] Claude Code vs Cursor: which AI coding assistant earns its $20 a month
 - [ ] How I built a private RAG assistant that answers only from my own documents
 - [ ] BM25 plus embeddings: why hybrid search beats pure vector search for technical docs
