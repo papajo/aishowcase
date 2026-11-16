@@ -7,8 +7,8 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SITE_URL || "https://aishowcase.qzz.io";
 
   // Merge DB posts and markdown posts, sort by date desc
-  let dbPosts: any[] = [];
-  let projects: any[] = [];
+  let dbPosts: Awaited<ReturnType<typeof prisma.dailyPost.findMany>> = [];
+  let projects: Awaited<ReturnType<typeof prisma.project.findMany>> = [];
 
   try {
     dbPosts = await prisma.dailyPost.findMany({

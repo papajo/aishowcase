@@ -4,6 +4,10 @@ import { notFound } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock } from "lucide-react"
 import { MDXContent } from "@/components/shared/MDXContent"
+import { AdSlot } from "@/components/shared/AdSlot"
+import Image from "next/image"
+import fs from "fs"
+import path from "path"
 import type { Metadata } from "next"
 
 interface PostPageProps {
@@ -14,7 +18,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   const { slug } = await params
 
   // Try DB first, fall back to markdown
-  let post: any = null
+  let post: { title: string; excerpt: string } | null = null
   try {
     post = await prisma.dailyPost.findUnique({ where: { slug } })
   } catch {
@@ -28,7 +32,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 export default async function PostPage({ params }: PostPageProps) {
   const { slug } = await params
 
-  let post: any = null
+  let post: { title: string; content: string; tags?: string[]; publishedAt?: Date | string; date?: string } | null = null
 
   try {
     post = await prisma.dailyPost.findUnique({ where: { slug } })
@@ -48,6 +52,14 @@ export default async function PostPage({ params }: PostPageProps) {
   const wordCount = post.content.split(/\s+/).length
   const readingTime = Math.max(1, Math.ceil(wordCount / 200))
 
+  const manualHero = path.join(process.cwd(), "public", "heroes", "manual", `${slug}.webp`)
+  const autoHero = path.join(process.cwd(), "public", "heroes", "auto", `${slug}.webp`)
+  const heroSrc = fs.existsSync(manualHero)
+    ? `/heroes/manual/${slug}.webp`
+    : fs.existsSync(autoHero)
+      ? `/heroes/auto/${slug}.webp`
+      : null
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <div className="mb-8">
@@ -60,9 +72,26 @@ export default async function PostPage({ params }: PostPageProps) {
           {(post.tags || []).map((tag: string) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
         </div>
       </div>
+      {heroSrc && (
+        <div className="mb-8 overflow-hidden rounded-xl border border-[oklch(0.88_0.02_50)/60] dark:border-[oklch(0.2_0.02_45)/60]">
+          <Image
+            src={heroSrc}
+            alt={post.title}
+            width={1200}
+            height={600}
+            priority
+            className="w-full aspect-[2/1] object-cover"
+          />
+        </div>
+      )}
       <article className="prose prose-invert max-w-none">
         <MDXContent content={post.content} />
       </article>
+      <AdSlot
+        enabled={process.env.NEXT_PUBLIC_ADS_ENABLED === "true"}
+        slot="journal-end"
+        className="mt-12"
+      />
     </div>
   )
 }

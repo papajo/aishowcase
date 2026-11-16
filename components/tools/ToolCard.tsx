@@ -12,6 +12,7 @@ interface ToolCardProps {
     logoUrl: string | null
     rating: number
     reviewCount: number
+    sponsorTier?: "none" | "basic" | "featured"
   }
   featured?: boolean
 }
@@ -48,6 +49,11 @@ export function ToolCard({ tool, featured }: ToolCardProps) {
               <div className="flex items-center gap-3 mb-2">
                 <h3 className="text-xl sm:text-2xl font-heading font-bold tracking-tight text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.92_0.02_60)] group-hover:text-[oklch(0.55_0.14_30)] dark:group-hover:text-[oklch(0.68_0.12_30)] transition-colors">{tool.name}</h3>
                 <Badge className={`${cat.color} ${cat.bg} border-0 text-xs font-medium`}>{tool.category}</Badge>
+                {tool.sponsorTier === "featured" && (
+                  <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border border-[oklch(0.55_0.14_30)/40] bg-[oklch(0.55_0.14_30)/10] text-[oklch(0.55_0.14_30)] dark:border-[oklch(0.68_0.12_30)/40] dark:bg-[oklch(0.68_0.12_30)/10] dark:text-[oklch(0.68_0.12_30)]">
+                    Featured
+                  </span>
+                )}
               </div>
               <p className="text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)] text-sm sm:text-base mb-4 max-w-2xl">{tool.description}</p>
               <div className="flex items-center gap-4">
@@ -83,7 +89,14 @@ export function ToolCard({ tool, featured }: ToolCardProps) {
               <h3 className="font-heading font-semibold text-sm tracking-tight text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.92_0.02_60)] group-hover:text-[oklch(0.55_0.14_30)] dark:group-hover:text-[oklch(0.68_0.12_30)] transition-colors truncate">{tool.name}</h3>
               <ArrowUpRight className="h-3.5 w-3.5 text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)] opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
             </div>
-            <Badge className={`${cat.color} ${cat.bg} border-0 text-[10px] font-medium mt-1`}>{tool.category}</Badge>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <Badge className={`${cat.color} ${cat.bg} border-0 text-[10px] font-medium`}>{tool.category}</Badge>
+              {tool.sponsorTier === "featured" && (
+                <span className="font-mono text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-[oklch(0.55_0.14_30)/40] bg-[oklch(0.55_0.14_30)/10] text-[oklch(0.55_0.14_30)] dark:border-[oklch(0.68_0.12_30)/40] dark:bg-[oklch(0.68_0.12_30)/10] dark:text-[oklch(0.68_0.12_30)]">
+                  Featured
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <p className="mt-3 text-xs text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)] line-clamp-2 leading-relaxed">{tool.description}</p>

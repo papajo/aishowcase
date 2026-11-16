@@ -6,12 +6,30 @@ import { toast } from "sonner"
 
 export function Footer() {
   const [email, setEmail] = useState("")
+  const [subscribing, setSubscribing] = useState(false)
 
-  function handleSubscribe(e: React.FormEvent) {
+  async function handleSubscribe(e: React.FormEvent) {
     e.preventDefault()
-    if (!email) return
-    toast.success("Thanks for subscribing to our newsletter!")
-    setEmail("")
+    if (!email || subscribing) return
+    setSubscribing(true)
+    try {
+      const res = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        toast.success(data.message || "Thanks for subscribing to our newsletter!")
+        setEmail("")
+      } else {
+        toast.error("Error", { description: data.error || "Failed to subscribe." })
+      }
+    } catch {
+      toast.error("Error", { description: "Something went wrong. Please try again." })
+    } finally {
+      setSubscribing(false)
+    }
   }
 
   return (
@@ -81,6 +99,11 @@ export function Footer() {
                   About Me
                 </Link>
               </li>
+              <li>
+                <Link href="/privacy" className="text-sm text-[oklch(0.5_0.03_40)] hover:text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.65_0.03_45)] dark:hover:text-[oklch(0.92_0.02_60)] transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -105,9 +128,10 @@ export function Footer() {
               </div>
               <button
                 type="submit"
-                className="w-full bg-[oklch(0.55_0.14_30)] dark:bg-[oklch(0.68_0.12_30)] hover:bg-[oklch(0.5_0.14_30)] dark:hover:bg-[oklch(0.63_0.12_30)] text-white dark:text-[oklch(0.09_0.01_40)] font-semibold text-xs py-2 px-4 rounded-md transition-colors"
+                disabled={subscribing}
+                className="w-full bg-[oklch(0.55_0.14_30)] dark:bg-[oklch(0.68_0.12_30)] hover:bg-[oklch(0.5_0.14_30)] dark:hover:bg-[oklch(0.63_0.12_30)] text-white dark:text-[oklch(0.09_0.01_40)] font-semibold text-xs py-2 px-4 rounded-md transition-colors disabled:opacity-50"
               >
-                Subscribe
+                {subscribing ? "Subscribing..." : "Subscribe"}
               </button>
             </form>
           </div>

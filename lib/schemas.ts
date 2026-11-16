@@ -13,6 +13,8 @@ export const toolSchema = z.object({
   slug: z.string().min(1, "Slug is required"),
   description: z.string().min(1, "Description is required"),
   websiteUrl: z.string().optional(),
+  affiliateUrl: z.string().optional(),
+  sponsorTier: z.enum(["none", "basic", "featured"]).optional(),
   logoUrl: z.string().optional(),
   category: z.string().optional(),
   featured: z.boolean().optional(),

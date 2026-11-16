@@ -29,11 +29,50 @@ export async function generateMetadata({ params }: ToolPageProps): Promise<Metad
   return { title: "Tool Not Found" }
 }
 
+interface ToolDetail {
+  id: string
+  name: string
+  slug: string
+  description: string
+  longDescription: string | null
+  category: string
+  logoUrl: string | null
+  websiteUrl: string | null
+  affiliateUrl?: string | null
+  sponsorTier?: "none" | "basic" | "featured"
+  rating: number
+  reviewCount: number
+  features: unknown
+  pricing: unknown
+  reviews: {
+    id: string
+    rating: number
+    content: string
+    pros: string[]
+    cons: string[]
+    authorName: string
+    createdAt: Date
+  }[]
+}
+
+interface RelatedToolItem {
+  id: string
+  name: string
+  slug: string
+  description: string
+  category: string
+  logoUrl: string | null
+  rating: number
+  reviewCount: number
+  featured: boolean
+  sponsorTier?: "none" | "basic" | "featured"
+}
+
 export default async function ToolPage({ params }: ToolPageProps) {
   const { slug } = await params
 
-  let tool: any = null
-  let relatedTools: any[] = []
+  let tool: ToolDetail | null = null
+  let relatedTools: RelatedToolItem[] = []
   let isMarkdown = false
   let mdContent: string | null = null
 
@@ -65,6 +104,8 @@ export default async function ToolPage({ params }: ToolPageProps) {
       category: mdTool!.category,
       logoUrl: mdTool!.logoUrl,
       websiteUrl: mdTool!.websiteUrl,
+      affiliateUrl: mdTool!.affiliateUrl,
+      sponsorTier: mdTool!.sponsorTier,
       rating: mdTool!.rating,
       reviewCount: mdTool!.reviewCount,
       features: mdTool!.features,
@@ -87,6 +128,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
         rating: t.rating,
         reviewCount: t.reviewCount,
         featured: t.featured,
+        sponsorTier: t.sponsorTier,
       }))
   }
 
@@ -118,12 +160,26 @@ export default async function ToolPage({ params }: ToolPageProps) {
             </span>
           </div>
         </div>
-        {tool.websiteUrl && (
-          <a href={tool.websiteUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors">
+        {tool.affiliateUrl ? (
+          <a
+            href={tool.affiliateUrl}
+            target="_blank"
+            rel="sponsored noopener"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/85 transition-colors shrink-0"
+          >
+            Try {tool.name} →
+          </a>
+        ) : tool.websiteUrl ? (
+          <a
+            href={tool.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/80 transition-colors shrink-0"
+          >
             <ExternalLink className="h-4 w-4" />
             Visit Site
           </a>
-        )}
+        ) : null}
       </div>
 
       {/* Features */}
@@ -163,7 +219,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
         <h2 className="text-xl font-semibold mb-4">Reviews ({reviews.length})</h2>
         {reviews.length > 0 ? (
           <div className="space-y-4">
-            {reviews.map((review: any) => (
+            {reviews.map((review) => (
               <ReviewCard key={review.id} review={review} />
             ))}
           </div>
@@ -188,7 +244,7 @@ export default async function ToolPage({ params }: ToolPageProps) {
         <section>
           <h2 className="text-xl font-semibold mb-4">Related Tools</h2>
           <div className="grid sm:grid-cols-2 gap-4">
-            {relatedTools.map((t: any) => (
+            {relatedTools.map((t) => (
               <ToolCard key={t.id} tool={t} />
             ))}
           </div>

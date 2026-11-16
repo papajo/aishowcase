@@ -7,22 +7,30 @@ datasource db {
   provider = "postgresql"
 }
 
+enum SponsorTier {
+  none
+  basic
+  featured
+}
+
 model Tool {
-  id              String   @id @default(cuid())
+  id              String      @id @default(cuid())
   name            String
-  slug            String   @unique
+  slug            String      @unique
   description     String
-  longDescription String?  @db.Text
+  longDescription String?     @db.Text
   category        String
   logoUrl         String?
   websiteUrl      String?
-  rating          Float    @default(0)
-  reviewCount     Int      @default(0)
+  affiliateUrl    String?
+  sponsorTier     SponsorTier @default(none)
+  rating          Float       @default(0)
+  reviewCount     Int         @default(0)
   features        Json?
   pricing         Json?
-  featured        Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  featured        Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
   reviews         Review[]
 
   @@index([category])

@@ -7,20 +7,39 @@ export const metadata = {
   description: "AI tools I've tested and reviewed for building AI applications.",
 }
 
+interface ToolListItem {
+  id: string
+  name: string
+  slug: string
+  description: string
+  category: string
+  logoUrl: string | null
+  rating: number
+  reviewCount: number
+  featured: boolean
+  affiliateUrl: string | null
+  sponsorTier: "none" | "basic" | "featured"
+  createdAt: string
+}
+
 export default async function ToolsPage() {
-  let tools: any[] = []
+  let tools: ToolListItem[] = []
 
   try {
-    tools = await prisma.tool.findMany({
+    const dbTools = await prisma.tool.findMany({
       orderBy: { createdAt: "desc" },
     })
+    tools = dbTools.map((t) => ({
+      ...t,
+      createdAt: t.createdAt.toISOString(),
+    }))
   } catch {
     // Database not available
   }
 
   // Merge markdown tools, dedupe by slug
   const mdTools = getMarkdownTools()
-  const seenSlugs = new Set<string>(tools.map((t: any) => t.slug))
+  const seenSlugs = new Set<string>(tools.map((t) => t.slug))
   for (const md of mdTools) {
     if (!seenSlugs.has(md.slug)) {
       seenSlugs.add(md.slug)
@@ -34,6 +53,9 @@ export default async function ToolsPage() {
         rating: md.rating,
         reviewCount: md.reviewCount,
         featured: md.featured,
+        affiliateUrl: md.affiliateUrl,
+        sponsorTier: md.sponsorTier,
+        createdAt: new Date(0).toISOString(),
       })
     }
   }

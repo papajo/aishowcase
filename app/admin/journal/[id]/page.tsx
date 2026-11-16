@@ -13,7 +13,7 @@ export default async function EditJournalPage({
 }) {
   const { id } = await params
 
-  let post: any = null
+  let post: Awaited<ReturnType<typeof prisma.dailyPost.findUnique>> = null
 
   try {
     post = await prisma.dailyPost.findUnique({

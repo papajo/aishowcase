@@ -13,7 +13,7 @@ export default async function EditToolPage({
 }) {
   const { id } = await params
 
-  let tool: any = null
+  let tool: Awaited<ReturnType<typeof prisma.tool.findUnique>> = null
 
   try {
     tool = await prisma.tool.findUnique({
@@ -27,5 +27,13 @@ export default async function EditToolPage({
     notFound()
   }
 
-  return <ToolForm tool={tool} />
+  return (
+    <ToolForm
+      tool={{
+        ...tool,
+        websiteUrl: tool.websiteUrl ?? "",
+        logoUrl: tool.logoUrl ?? "",
+      }}
+    />
+  )
 }

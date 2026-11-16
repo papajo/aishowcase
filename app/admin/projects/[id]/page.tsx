@@ -13,7 +13,7 @@ export default async function EditProjectPage({
 }) {
   const { id } = await params
 
-  let project: any = null
+  let project: Awaited<ReturnType<typeof prisma.project.findUnique>> = null
 
   try {
     project = await prisma.project.findUnique({
@@ -27,5 +27,13 @@ export default async function EditProjectPage({
     notFound()
   }
 
-  return <ProjectForm project={project} />
+  return (
+    <ProjectForm
+      project={{
+        ...project,
+        liveUrl: project.liveUrl ?? "",
+        githubUrl: project.githubUrl ?? "",
+      }}
+    />
+  )
 }

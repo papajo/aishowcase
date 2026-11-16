@@ -29,6 +29,8 @@ export async function POST(req: Request) {
         description: data.description,
         category: data.category || "Uncategorized",
         websiteUrl: data.websiteUrl || null,
+        affiliateUrl: data.affiliateUrl || null,
+        sponsorTier: data.sponsorTier || "none",
         logoUrl: data.logoUrl || null,
         featured: data.featured || false,
       },

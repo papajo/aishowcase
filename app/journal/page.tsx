@@ -8,8 +8,18 @@ export const metadata = {
   description: "Daily logs, learnings, and insights from building with AI.",
 }
 
+interface JournalListItem {
+  id?: string
+  slug: string
+  title: string
+  excerpt: string
+  tags: string[]
+  date?: string | Date
+  publishedAt?: Date
+}
+
 export default async function JournalPage() {
-  let dbPosts: any[] = []
+  let dbPosts: Awaited<ReturnType<typeof prisma.dailyPost.findMany>> = []
 
   try {
     dbPosts = await prisma.dailyPost.findMany({ orderBy: { publishedAt: "desc" } })
@@ -20,7 +30,7 @@ export default async function JournalPage() {
   // Merge DB posts and markdown file posts, dedupe by slug
   const mdPosts = getMarkdownPosts()
   const seenSlugs = new Set<string>()
-  const allPosts: any[] = []
+  const allPosts: JournalListItem[] = []
 
   for (const post of dbPosts) {
     if (!seenSlugs.has(post.slug)) {
@@ -52,7 +62,7 @@ export default async function JournalPage() {
       </ScrollReveal>
 
       <ScrollStagger className="space-y-4" staggerDelay={0.1}>
-        {allPosts.map((post: any) => (
+        {allPosts.map((post) => (
           <ScrollStaggerItem key={post.slug || post.id}><PostCard post={post} /></ScrollStaggerItem>
         ))}
       </ScrollStagger>

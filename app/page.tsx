@@ -6,6 +6,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { ScrollReveal, ScrollStagger, ScrollStaggerItem } from "@/components/shared/ScrollReveal"
 import { NewsletterSignup } from "@/components/shared/NewsletterSignup"
+import { AdSlot } from "@/components/shared/AdSlot"
 import fs from "fs"
 import path from "path"
 import {
@@ -21,10 +22,45 @@ import {
   ApexAnalyticsIllustration,
 } from "@/components/shared/TechnicalIllustrations"
 
+interface HomeToolItem {
+  id: string
+  name: string
+  slug: string
+  description: string
+  category: string
+  logoUrl: string | null
+  rating: number
+  reviewCount: number
+  featured: boolean
+}
+
+interface HomeProjectItem {
+  id: string
+  title: string
+  slug: string
+  description: string
+  thumbnailUrl: string | null
+  techStack: string[]
+  tags: string[]
+  githubUrl: string | null
+  liveUrl: string | null
+  featured: boolean
+}
+
+interface HomePostItem {
+  id: string
+  title: string
+  slug: string
+  excerpt: string
+  tags: string[]
+  date?: string | Date
+  publishedAt?: string | Date
+}
+
 export default async function HomePage() {
-  let tools: any[] = []
-  let projects: any[] = []
-  let posts: any[] = []
+  let tools: HomeToolItem[] = []
+  let projects: HomeProjectItem[] = []
+  let posts: HomePostItem[] = []
 
   try {
     ;[tools, projects, posts] = await Promise.all([
@@ -41,18 +77,18 @@ export default async function HomePage() {
   const mdTools = getMarkdownTools()
   const mdProjects = getMarkdownProjects()
 
-  const seenPostSlugs = new Set<string>(posts.map((p: any) => p.slug))
+  const seenPostSlugs = new Set<string>(posts.map((p) => p.slug))
   for (const md of mdPosts) {
     if (!seenPostSlugs.has(md.slug)) {
       seenPostSlugs.add(md.slug)
       posts.push({ id: `md-${md.slug}`, ...md, date: md.date, publishedAt: md.date })
     }
   }
-  posts.sort((a: any, b: any) => new Date(b.publishedAt || b.date || 0).getTime() - new Date(a.publishedAt || a.date || 0).getTime())
+  posts.sort((a, b) => new Date(b.publishedAt || b.date || 0).getTime() - new Date(a.publishedAt || a.date || 0).getTime())
   // We need 6 posts: 1 for hero featured, 5 for side list
   posts = posts.slice(0, 6)
 
-  const seenToolSlugs = new Set<string>(tools.map((t: any) => t.slug))
+  const seenToolSlugs = new Set<string>(tools.map((t) => t.slug))
   for (const md of mdTools) {
     if (!seenToolSlugs.has(md.slug)) {
       seenToolSlugs.add(md.slug)
@@ -61,7 +97,7 @@ export default async function HomePage() {
   }
   tools = tools.slice(0, 6)
 
-  const seenProjectSlugs = new Set<string>(projects.map((p: any) => p.slug))
+  const seenProjectSlugs = new Set<string>(projects.map((p) => p.slug))
   for (const md of mdProjects) {
     if (!seenProjectSlugs.has(md.slug)) {
       seenProjectSlugs.add(md.slug)
@@ -154,18 +190,18 @@ export default async function HomePage() {
 
   // Define maps for illustrations
   const projectIllustrations = [
-    <DatabasePerformanceIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
-    <GearsIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
-    <DatabaseLockIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
+    <DatabasePerformanceIllustration key="proj-0" className="w-full aspect-[2/1] object-cover mb-4" />,
+    <GearsIllustration key="proj-1" className="w-full aspect-[2/1] object-cover mb-4" />,
+    <DatabaseLockIllustration key="proj-2" className="w-full aspect-[2/1] object-cover mb-4" />,
   ]
 
   const toolIllustrations = [
-    <FactoryDatabaseIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
-    <TimeDelayIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
-    <RowVsColumnarIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
-    <LaptopClockIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
-    <PlantFloorIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
-    <ApexAnalyticsIllustration className="w-full aspect-[2/1] object-cover mb-4" />,
+    <FactoryDatabaseIllustration key="tool-0" className="w-full aspect-[2/1] object-cover mb-4" />,
+    <TimeDelayIllustration key="tool-1" className="w-full aspect-[2/1] object-cover mb-4" />,
+    <RowVsColumnarIllustration key="tool-2" className="w-full aspect-[2/1] object-cover mb-4" />,
+    <LaptopClockIllustration key="tool-3" className="w-full aspect-[2/1] object-cover mb-4" />,
+    <PlantFloorIllustration key="tool-4" className="w-full aspect-[2/1] object-cover mb-4" />,
+    <ApexAnalyticsIllustration key="tool-5" className="w-full aspect-[2/1] object-cover mb-4" />,
   ]
 
   const featuredPost = posts[0]
@@ -200,7 +236,7 @@ export default async function HomePage() {
                     </p>
                     <div className="flex items-center gap-3 text-[11px] text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)] font-mono pt-1">
                       <Calendar className="h-3.5 w-3.5" />
-                      {new Date(featuredPost.publishedAt || featuredPost.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {new Date(featuredPost.publishedAt || featuredPost.date || 0).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </div>
                   </div>
                 </Link>
@@ -231,7 +267,7 @@ export default async function HomePage() {
                       {post.title}
                     </h4>
                     <span className="text-[10px] text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)] font-mono block">
-                      {new Date(post.publishedAt || post.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      {new Date(post.publishedAt || post.date || 0).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </span>
                   </Link>
                 </ScrollStaggerItem>
@@ -288,6 +324,12 @@ export default async function HomePage() {
           )}
         </ScrollStagger>
       </section>
+
+      <AdSlot
+        enabled={process.env.NEXT_PUBLIC_ADS_ENABLED === "true"}
+        slot="home-projects"
+        className="mb-16"
+      />
 
       {/* 3. AI Tools Grid — "AI Tools for Everything" (6 items) */}
       <section className="mb-20 pb-8">

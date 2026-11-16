@@ -6,7 +6,7 @@ export const metadata = {
 }
 
 export default async function AdminToolsPage() {
-  let tools: any[] = []
+  let tools: Awaited<ReturnType<typeof prisma.tool.findMany>> = []
 
   try {
     tools = await prisma.tool.findMany({

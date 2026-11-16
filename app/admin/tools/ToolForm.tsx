@@ -18,6 +18,8 @@ interface ToolFormProps {
     slug: string
     description: string
     websiteUrl: string
+    affiliateUrl?: string | null
+    sponsorTier?: "none" | "basic" | "featured"
     logoUrl: string
     category: string
     featured: boolean
@@ -32,6 +34,8 @@ export function ToolForm({ tool }: ToolFormProps) {
     slug: tool?.slug || "",
     description: tool?.description || "",
     websiteUrl: tool?.websiteUrl || "",
+    affiliateUrl: tool?.affiliateUrl || "",
+    sponsorTier: tool?.sponsorTier || "none",
     logoUrl: tool?.logoUrl || "",
     category: tool?.category || "",
     featured: tool?.featured || false,
@@ -124,6 +128,24 @@ export function ToolForm({ tool }: ToolFormProps) {
             <div>
               <label className="text-sm font-medium mb-2 block">Website URL</label>
               <Input type="url" value={form.websiteUrl} onChange={(e) => setForm((f) => ({ ...f, websiteUrl: e.target.value }))} placeholder="https://..." />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Affiliate URL (optional)</label>
+                <Input type="url" value={form.affiliateUrl} onChange={(e) => setForm((f) => ({ ...f, affiliateUrl: e.target.value }))} placeholder="https://..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Sponsor Tier</label>
+                <select
+                  value={form.sponsorTier}
+                  onChange={(e) => setForm((f) => ({ ...f, sponsorTier: e.target.value as "none" | "basic" | "featured" }))}
+                  className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm"
+                >
+                  <option value="none">None</option>
+                  <option value="basic">Basic</option>
+                  <option value="featured">Featured</option>
+                </select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

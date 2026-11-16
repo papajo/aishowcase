@@ -128,7 +128,7 @@ export default function AdminLayout({
         .catch(() => setAuthenticated(false))
         .finally(() => setChecking(false))
     } else {
-      setChecking(false)
+      queueMicrotask(() => setChecking(false))
     }
   }, [])
 

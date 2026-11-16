@@ -16,6 +16,8 @@ interface Tool {
   rating: number
   reviewCount: number
   featured: boolean
+  affiliateUrl?: string | null
+  sponsorTier?: "none" | "basic" | "featured"
   createdAt: string
 }
 

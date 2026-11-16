@@ -6,7 +6,7 @@ export const metadata = {
 }
 
 export default async function AdminJournalPage() {
-  let posts: any[] = []
+  let posts: Awaited<ReturnType<typeof prisma.dailyPost.findMany>> = []
 
   try {
     posts = await prisma.dailyPost.findMany({
@@ -16,5 +16,12 @@ export default async function AdminJournalPage() {
     // Database not available
   }
 
-  return <JournalList posts={posts} />
+  return (
+    <JournalList
+      posts={posts.map((p) => ({
+        ...p,
+        publishedAt: p.publishedAt.toISOString(),
+      }))}
+    />
+  )
 }

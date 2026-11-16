@@ -60,22 +60,24 @@ export function ThemeProvider({
 
   useEffect(() => {
     // Read stored preference on mount
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
-      if (stored && (stored === "light" || stored === "dark" || (enableSystem && stored === "system"))) {
-        setThemeState(stored)
-        const resolved = resolveTheme(stored)
-        setResolvedTheme(resolved)
-        applyTheme(stored, attribute)
-      } else {
-        setThemeState(defaultTheme)
-        const resolved = resolveTheme(defaultTheme)
-        setResolvedTheme(resolved)
+    queueMicrotask(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY) as Theme | null
+        if (stored && (stored === "light" || stored === "dark" || (enableSystem && stored === "system"))) {
+          setThemeState(stored)
+          const resolved = resolveTheme(stored)
+          setResolvedTheme(resolved)
+          applyTheme(stored, attribute)
+        } else {
+          setThemeState(defaultTheme)
+          const resolved = resolveTheme(defaultTheme)
+          setResolvedTheme(resolved)
+          applyTheme(defaultTheme, attribute)
+        }
+      } catch {
         applyTheme(defaultTheme, attribute)
       }
-    } catch {
-      applyTheme(defaultTheme, attribute)
-    }
+    })
   }, [defaultTheme, attribute, enableSystem, resolveTheme])
 
   // Listen for system theme changes when in "system" mode

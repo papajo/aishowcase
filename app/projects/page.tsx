@@ -8,8 +8,21 @@ export const metadata = {
   description: "AI projects I've built and contributed to.",
 }
 
+interface ProjectListItem {
+  id: string
+  title: string
+  slug: string
+  description: string
+  thumbnailUrl: string | null
+  techStack: string[]
+  tags: string[]
+  githubUrl: string | null
+  liveUrl: string | null
+  featured: boolean
+}
+
 export default async function ProjectsPage() {
-  let projects: any[] = []
+  let projects: ProjectListItem[] = []
 
   try {
     projects = await prisma.project.findMany({ orderBy: { order: "asc" } })
@@ -19,7 +32,7 @@ export default async function ProjectsPage() {
 
   // Merge markdown projects, dedupe by slug
   const mdProjects = getMarkdownProjects()
-  const seenSlugs = new Set<string>(projects.map((p: any) => p.slug))
+  const seenSlugs = new Set<string>(projects.map((p) => p.slug))
   for (const md of mdProjects) {
     if (!seenSlugs.has(md.slug)) {
       seenSlugs.add(md.slug)
@@ -42,11 +55,11 @@ export default async function ProjectsPage() {
     <div className="mx-auto max-w-5xl px-6 py-12">
       <ScrollReveal>
         <h1 className="text-3xl font-bold tracking-tight mb-2">Projects</h1>
-        <p className="text-muted-foreground mb-8">AI projects I've built, from RAG pipelines to multi-agent systems.</p>
+        <p className="text-muted-foreground mb-8">AI projects I&apos;ve built, from RAG pipelines to multi-agent systems.</p>
       </ScrollReveal>
 
       <ScrollStagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3" staggerDelay={0.1}>
-        {projects.map((project: any) => (
+        {projects.map((project) => (
           <ScrollStaggerItem key={project.id}><ProjectCard project={project} /></ScrollStaggerItem>
         ))}
       </ScrollStagger>

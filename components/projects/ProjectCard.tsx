@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ExternalLink, Code } from "lucide-react"
+import { ExternalLink, Code, Terminal } from "lucide-react"
 
 interface ProjectCardProps {
   project: {
@@ -22,11 +22,16 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Link href={`/projects/${project.slug}`} className="block group">
       <Card className="h-full transition-all duration-200 hover:-translate-y-1 hover:border-[oklch(0.55_0.14_30)/50] dark:hover:border-[oklch(0.68_0.12_30)/50]">
         <CardContent className="p-5">
-          <div className="aspect-video rounded-lg bg-[oklch(0.94_0.01_50)] dark:bg-[oklch(0.18_0.02_40)] mb-4 flex items-center justify-center overflow-hidden">
+          <div className="aspect-video rounded-lg bg-[oklch(0.94_0.01_50)] dark:bg-[oklch(0.18_0.02_40)] mb-4 flex items-center justify-center overflow-hidden relative border border-[oklch(0.88_0.02_50)/60] dark:border-[oklch(0.25_0.02_45)/60]">
             {project.thumbnailUrl ? (
               <img src={project.thumbnailUrl} alt={project.title} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-4xl font-heading font-bold text-[oklch(0.5_0.03_40)] dark:text-[oklch(0.65_0.03_45)]">A</span>
+              <div className="flex flex-col items-center justify-center gap-2 px-4 text-center">
+                <Terminal className="h-6 w-6 text-[oklch(0.55_0.14_30)] dark:text-[oklch(0.68_0.12_30)]" />
+                <span className="font-mono text-xs text-[oklch(0.45_0.03_40)] dark:text-[oklch(0.7_0.03_45)] truncate max-w-full">
+                  ~/projects/{project.slug}
+                </span>
+              </div>
             )}
           </div>
           <h3 className="font-heading font-semibold text-[oklch(0.15_0.02_40)] dark:text-[oklch(0.92_0.02_60)] group-hover:text-[oklch(0.55_0.14_30)] dark:group-hover:text-[oklch(0.68_0.12_30)] transition-colors mb-2">{project.title}</h3>

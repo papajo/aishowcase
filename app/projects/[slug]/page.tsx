@@ -27,11 +27,35 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
   return { title: "Project Not Found" }
 }
 
+interface ProjectDetail {
+  id: string
+  title: string
+  slug: string
+  description: string
+  techStack: string[]
+  tags: string[]
+  githubUrl: string | null
+  liveUrl: string | null
+  content?: string
+}
+
+interface RelatedProjectItem {
+  id: string
+  title: string
+  slug: string
+  description: string
+  thumbnailUrl: string | null
+  techStack: string[]
+  tags: string[]
+  githubUrl: string | null
+  liveUrl: string | null
+}
+
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { slug } = await params
 
-  let project: any = null
-  let relatedProjects: any[] = []
+  let project: ProjectDetail | null = null
+  let relatedProjects: RelatedProjectItem[] = []
   let isMarkdown = false
   let mdContent: string | null = null
 
@@ -110,7 +134,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
       {/* Content */}
       <article className="prose prose-invert max-w-none mb-12">
-        <MDXContent content={isMarkdown && mdContent ? mdContent : project.content} />
+        <MDXContent content={isMarkdown && mdContent ? mdContent : project.content || ""} />
       </article>
 
       {/* Related Projects */}
@@ -118,7 +142,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         <section>
           <h2 className="text-2xl font-bold mb-6">Other Projects</h2>
           <div className="grid gap-6 md:grid-cols-3">
-            {relatedProjects.map((p: any) => (
+            {relatedProjects.map((p) => (
               <ProjectCard key={p.id} project={p} />
             ))}
           </div>

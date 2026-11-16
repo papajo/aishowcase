@@ -6,7 +6,7 @@ export const metadata = {
 }
 
 export default async function AdminProjectsPage() {
-  let projects: any[] = []
+  let projects: Awaited<ReturnType<typeof prisma.project.findMany>> = []
 
   try {
     projects = await prisma.project.findMany({

@@ -17,6 +17,8 @@ export interface MarkdownPost {
   tags: string[]
 }
 
+export type SponsorTier = "none" | "basic" | "featured"
+
 export interface MarkdownTool {
   slug: string
   name: string
@@ -25,6 +27,8 @@ export interface MarkdownTool {
   category: string
   logoUrl: string | null
   websiteUrl: string | null
+  affiliateUrl: string | null
+  sponsorTier: SponsorTier
   rating: number
   reviewCount: number
   features: string[]
@@ -193,6 +197,11 @@ export function getMarkdownPostBySlug(slug: string): MarkdownPost | null {
 
 // ── Tools ─────────────────────────────────────────────────────────────────
 
+export function parseSponsorTier(val: string | undefined): SponsorTier {
+  if (val === "basic" || val === "featured") return val
+  return "none"
+}
+
 function parseToolFile(filepath: string): MarkdownTool | null {
   try {
     const fileContent = fs.readFileSync(filepath, "utf-8")
@@ -206,6 +215,8 @@ function parseToolFile(filepath: string): MarkdownTool | null {
       category: meta.category || "Uncategorized",
       logoUrl: meta.logoUrl || null,
       websiteUrl: meta.websiteUrl || null,
+      affiliateUrl: meta.affiliateUrl || null,
+      sponsorTier: parseSponsorTier(meta.sponsorTier),
       rating: floatOr(meta.rating, 0),
       reviewCount: intOr(meta.reviewCount, 0),
       features: csvToArray(meta.features),
