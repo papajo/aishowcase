@@ -1,7 +1,7 @@
 ---
 title: "Pinecone vs Weaviate vs Qdrant: picking a vector database for a small RAG app"
 date: "2026-11-16T15:26:59.306084+00:00"
-published: false
+published: true
 source: auto_generate_post.py
 tags: "Pinecone, Weaviate, Qdrant, Picking"
 ---
