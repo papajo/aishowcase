@@ -124,10 +124,12 @@ def generate_with_llm(topic: str, model: str) -> str:
             )},
         ],
         "temperature": 0.7,
-        # Bound the output: a 400-600 word article needs ~600-900 tokens.
-        # Without a cap, a slow free-tier endpoint can spend 5+ minutes
-        # generating a long response and the read times out.
-        "max_tokens": 1500,
+        # Bound the output, but leave room for this model's hidden reasoning:
+        # run #5 proved it spends ~1500 tokens reasoning before writing a word,
+        # and max_tokens counts reasoning too — a 1500 cap left nothing for the
+        # article itself (finish_reason 'length', 1499 reasoning tokens, null
+        # content). A 400-600 word article needs ~600-900 tokens on top.
+        "max_tokens": 8000,
     }
     headers = {"Content-Type": "application/json", "User-Agent": "auto-generate-post/1.0"}
     if api_key: headers["Authorization"] = f"Bearer {api_key}"
