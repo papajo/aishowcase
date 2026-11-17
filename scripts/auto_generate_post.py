@@ -73,7 +73,25 @@ def is_duplicate(topic: str, existing: set[str]) -> bool:
     return False
 
 
-def generate_with_llm(topic: str, model: str) -> str:
+def fetch_url_context(url: str, max_chars: int = 3000) -> str:
+    """Fetch a reference URL and extract plain text to ground generation."""
+    if not url:
+        return ""
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "aishowcase-context/1.0"})
+        with urllib.request.urlopen(req, timeout=20, context=context) as resp:
+            raw = resp.read().decode("utf-8", errors="replace")
+        # Strip scripts/styles and HTML tags
+        raw = re.sub(r"<(script|style)\b[^>]*>.*?</\1>", " ", raw, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r"<[^>]+>", " ", raw)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text[:max_chars]
+    except Exception as e:
+        print(f"⚠️  Could not fetch context URL ({url}): {e}")
+        return ""
+
+
+def generate_with_llm(topic: str, model: str, extra_context: str = "") -> str:
     api_key = os.environ.get("NVIDIA_API_KEY")
     is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
 
@@ -120,7 +138,9 @@ def generate_with_llm(topic: str, model: str) -> str:
                 "- Include inline references [Source N] in the key takeaways\n"
                 "- References section must have 3-5 entries with descriptive names and real, verified URLs (use official product homepages or top-level documentation roots like https://www.pinecone.io/ or https://qdrant.tech/documentation/ — NEVER guess deep sub-paths)\n"
                 "- Use real company names, tool names, and technical terms — not vague generalizations\n"
+                "- Do NOT guess or invent what an unfamiliar paper, project, or creative metaphor in the title means; stay strictly accurate to verified facts\n"
                 "- Aim for 400-600 words total"
+                + (f"\n\nGROUNDING CONTEXT (authoritative — base your technical explanation on this):\n{extra_context}" if extra_context else "")
             )},
         ],
         "temperature": 0.7,
@@ -326,6 +346,8 @@ def rename_post(old: str, new: str) -> bool:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Auto-generate a draft journal post.")
     p.add_argument("--topic", help="Topic or AI tool name")
+    p.add_argument("--context", default="", help="Optional technical summary/notes to ground the article")
+    p.add_argument("--url", default="", help="Optional source URL (e.g. arXiv/blog) to fetch as grounding context")
     p.add_argument("--publish", default="false", help="true/false: mark published")
     p.add_argument("--model", default=DEFAULT_MODEL)
     p.add_argument("--force", default="false", help="Skip duplicate check")
@@ -355,7 +377,13 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: Similar post already exists: {args.topic!r}. Use --force true to override.")
         return 1
 
-    body = generate_with_llm(args.topic, args.model)
+    extra_context = args.context.strip()
+    if args.url.strip():
+        fetched = fetch_url_context(args.url.strip())
+        if fetched:
+            extra_context = f"{extra_context}\n\nSource ({args.url.strip()}):\n{fetched}".strip()
+
+    body = generate_with_llm(args.topic, args.model, extra_context=extra_context)
     body = sanitize_reference_urls(body)
 
     # Determine tags: CLI arg > LLM-generated
