@@ -5,7 +5,8 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Terminal, Scissors, Sliders, GitCompare, Network, ArrowUpRight, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Terminal, Scissors, Sliders, GitCompare, Network, ArrowUpRight, CheckCircle2, AlertTriangle, Lock, Download } from "lucide-react"
+import { toast } from "sonner"
 
 type DemoTab = "rag" | "lora" | "parity" | "mlkg"
 
@@ -345,6 +346,130 @@ function ParityDiffDemo() {
   )
 }
 
+function MlKnowledgeGraphDemo() {
+  const [email, setEmail] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [unlockedHtml, setUnlockedHtml] = useState<string | null>(null)
+
+  function triggerDownload(html: string) {
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "ml-knowledge-graph-studio.html"
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleUnlock(e: React.FormEvent) {
+    e.preventDefault()
+    if (!email || loading) return
+    setLoading(true)
+    try {
+      const res = await fetch("/api/demos/studio-download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        toast.error("Signup failed", { description: err.error || "Please check your email and try again." })
+        return
+      }
+      const html = await res.text()
+      setUnlockedHtml(html)
+      triggerDownload(html)
+      toast.success("Study Studio v2 unlocked!", {
+        description: "Downloading ml-knowledge-graph-studio.html now.",
+      })
+    } catch {
+      toast.error("Error", { description: "Could not reach the server. Please try again." })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <h2 className="text-xl font-heading font-bold">AI / ML Knowledge Graph Tutor</h2>
+          <p className="text-sm text-muted-foreground">
+            Interactive prerequisite graph, code challenges, and visual labs (Gradient Descent, Attention Lens, Grokking).
+          </p>
+        </div>
+        <a
+          href="/demos/ml-knowledge-graph.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-mono text-[oklch(0.55_0.14_30)] dark:text-[oklch(0.68_0.12_30)] hover:underline inline-flex items-center gap-1 shrink-0"
+        >
+          Open v1 fullscreen <ArrowUpRight className="h-3.5 w-3.5" />
+        </a>
+      </div>
+
+      {/* Signup Wall for Study Studio (v2) Download */}
+      <div className="rounded-xl border border-[oklch(0.55_0.14_30)/40] dark:border-[oklch(0.68_0.12_30)/40] bg-[oklch(0.55_0.14_30)/5] dark:bg-[oklch(0.68_0.12_30)/5] p-5 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Lock className="h-4 w-4 text-[oklch(0.55_0.14_30)] dark:text-[oklch(0.68_0.12_30)]" />
+          <span className="font-heading font-bold text-sm">
+            Download Study Studio Edition (v2 — Standalone HTML)
+          </span>
+          <Badge variant="secondary" className="font-mono text-[10px]">FREE AFTER SIGNUP</Badge>
+        </div>
+        <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+          The downloadable v2 edition adds the complete <strong>Study Studio</strong> tab with all 7 learning methods:
+          Socratic questioning, 3-level explanations (child → high school → academic), 3-tier practice questions,
+          paper/PDF summarize &amp; compare, 20 categorized key terms, Bloom&apos;s taxonomy challenges, and analogies.
+        </p>
+
+        {unlockedHtml ? (
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={() => triggerDownload(unlockedHtml)}
+              className="inline-flex items-center gap-2 rounded-lg bg-[oklch(0.55_0.14_30)] dark:bg-[oklch(0.68_0.12_30)] text-white dark:text-[oklch(0.09_0.01_40)] px-4 py-2 text-xs font-semibold hover:opacity-90 transition-opacity"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download ml-knowledge-graph-studio.html again
+            </button>
+            <span className="text-xs font-mono text-emerald-500">✓ Unlocked</span>
+          </div>
+        ) : (
+          <form onSubmit={handleUnlock} className="flex flex-col sm:flex-row gap-2.5 pt-1 max-w-lg">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+              className="bg-background font-mono text-sm"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-[oklch(0.55_0.14_30)] dark:bg-[oklch(0.68_0.12_30)] text-white dark:text-[oklch(0.09_0.01_40)] px-4 py-2 text-xs font-semibold whitespace-nowrap hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {loading ? "Unlocking..." : "Sign up & Download"}
+            </button>
+          </form>
+        )}
+      </div>
+
+      <div className="overflow-hidden rounded-xl border border-border bg-[#0d1117]">
+        <iframe
+          src="/demos/ml-knowledge-graph.html"
+          title="AI/ML Knowledge Graph Tutor (v1 Preview)"
+          className="w-full h-[760px] border-0"
+        />
+      </div>
+    </div>
+  )
+}
+
 export function DemosClient() {
   const [activeTab, setActiveTab] = useState<DemoTab>("rag")
 
@@ -386,33 +511,7 @@ export function DemosClient() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          {activeTab === "mlkg" && (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-xl font-heading font-bold">AI / ML Knowledge Graph Tutor</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Interactive prerequisite graph, code challenges, and visual labs (Gradient Descent, Attention Lens, Grokking).
-                  </p>
-                </div>
-                <a
-                  href="/demos/ml-knowledge-graph.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-mono text-[oklch(0.55_0.14_30)] dark:text-[oklch(0.68_0.12_30)] hover:underline inline-flex items-center gap-1 shrink-0"
-                >
-                  Open fullscreen <ArrowUpRight className="h-3.5 w-3.5" />
-                </a>
-              </div>
-              <div className="overflow-hidden rounded-xl border border-border bg-[#0d1117]">
-                <iframe
-                  src="/demos/ml-knowledge-graph.html"
-                  title="AI/ML Knowledge Graph Tutor"
-                  className="w-full h-[760px] border-0"
-                />
-              </div>
-            </div>
-          )}
+          {activeTab === "mlkg" && <MlKnowledgeGraphDemo />}
           {activeTab === "rag" && <RagChunkDemo />}
           {activeTab === "lora" && <LoraLabDemo />}
           {activeTab === "parity" && <ParityDiffDemo />}
