@@ -5,9 +5,9 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Terminal, Scissors, Sliders, GitCompare, ArrowUpRight, CheckCircle2, AlertTriangle } from "lucide-react"
+import { Terminal, Scissors, Sliders, GitCompare, Network, ArrowUpRight, CheckCircle2, AlertTriangle } from "lucide-react"
 
-type DemoTab = "rag" | "lora" | "parity"
+type DemoTab = "rag" | "lora" | "parity" | "mlkg"
 
 const SAMPLE_RAG_TEXT = `Pinecone is a managed serverless vector database designed for zero-ops scaling and metadata filtering. Weaviate combines BM25 keyword search with dense vector retrieval and supports structured GraphQL schemas. Qdrant is written in Rust and runs cleanly in a single Docker container with fast boolean payload filtering. For small RAG apps, hybrid retrieval (BM25 + embeddings) often improves recall on exact product names, error codes, and proper nouns.`
 
@@ -349,6 +349,7 @@ export function DemosClient() {
   const [activeTab, setActiveTab] = useState<DemoTab>("rag")
 
   const tabs: { id: DemoTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: "mlkg", label: "ML Knowledge Graph", icon: Network },
     { id: "rag", label: "RAG Chunking", icon: Scissors },
     { id: "lora", label: "LoRA & LR Lab", icon: Sliders },
     { id: "parity", label: "Byte-Parity Diff", icon: GitCompare },
@@ -385,6 +386,33 @@ export function DemosClient() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
+          {activeTab === "mlkg" && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-xl font-heading font-bold">AI / ML Knowledge Graph Tutor</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Interactive prerequisite graph, code challenges, and visual labs (Gradient Descent, Attention Lens, Grokking).
+                  </p>
+                </div>
+                <a
+                  href="/demos/ml-knowledge-graph.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-mono text-[oklch(0.55_0.14_30)] dark:text-[oklch(0.68_0.12_30)] hover:underline inline-flex items-center gap-1 shrink-0"
+                >
+                  Open fullscreen <ArrowUpRight className="h-3.5 w-3.5" />
+                </a>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-border bg-[#0d1117]">
+                <iframe
+                  src="/demos/ml-knowledge-graph.html"
+                  title="AI/ML Knowledge Graph Tutor"
+                  className="w-full h-[760px] border-0"
+                />
+              </div>
+            </div>
+          )}
           {activeTab === "rag" && <RagChunkDemo />}
           {activeTab === "lora" && <LoraLabDemo />}
           {activeTab === "parity" && <ParityDiffDemo />}

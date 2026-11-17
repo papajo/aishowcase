@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI/ML Knowledge Graph Tutor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d1117;--panel:#151b23;--panel2:#1c2430;--panel3:#232d3b;--line:#2a3441;--text:#e6edf3;--muted:#8b98a8;--l1:#4cc9f0;--l2:#f9a826;--l3:#c77dff;--ok:#3fb950;--bad:#f85149;--warn:#d29922;--accent:#58a6ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;line-height:1.5}
+button{font:inherit;color:inherit;cursor:pointer}
+header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;min-height:54px}
+h1{font-size:15px;margin:0;font-weight:700;letter-spacing:.2px}
+h1 span{color:var(--muted);font-weight:500}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{background:none;border:1px solid transparent;color:var(--muted);padding:6px 12px;border-radius:7px}
+.tab:hover{color:var(--text)}
+.tab.on{background:var(--panel2);color:var(--text);border-color:var(--line)}
+.tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--warn);margin-left:6px;vertical-align:middle}
+.xp{margin-left:auto;display:flex;gap:14px;color:var(--muted);font-size:13px;align-items:center}
+.xp b{color:var(--text)}
+main{height:calc(100% - 54px)}
+.view{display:none;height:100%}
+.view.on{display:flex}
+/* graph */
+#graphWrap{flex:1;position:relative;overflow:hidden;min-width:0}
+#svg{width:100%;height:100%;display:block;touch-action:none;cursor:grab;background:radial-gradient(circle at 30% 20%,#121a25 0,#0d1117 70%)}
+#svg.panning{cursor:grabbing}
+.toolbar{position:absolute;top:12px;left:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;pointer-events:none}
+.toolbar>*{pointer-events:auto}
+.search{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:7px;width:190px;font:inherit}
+.chip{background:var(--panel);border:1px solid var(--line);padding:5px 10px;border-radius:20px;font-size:12px;color:var(--muted);display:inline-flex;align-items:center;gap:6px}
+.chip.on{color:var(--text);border-color:#3b4757}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.chip.btn:hover{border-color:var(--accent)}
+.today{margin-left:auto;background:linear-gradient(90deg,#2a1f45,#1c2430);border:1px solid #4b3a74;padding:6px 12px;border-radius:8px;font-size:12.5px}
+.today b{color:var(--l3)}
+.today button{background:var(--l3);border:0;color:#160a24;font-weight:600;padding:3px 9px;border-radius:5px;margin-left:8px}
+.legendBox{position:absolute;left:12px;bottom:12px;background:rgba(21,27,35,.92);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.legendBox span{display:inline-flex;align-items:center;gap:6px}
+.zoomBtns{position:absolute;right:12px;bottom:12px;display:flex;flex-direction:column;gap:4px}
+.zoomBtns button{background:var(--panel);border:1px solid var(--line);width:32px;height:32px;border-radius:7px}
+.node{cursor:pointer}
+.node text{font-size:13px;fill:#c9d4df;pointer-events:none;text-anchor:middle;font-weight:500}
+.node.locked{opacity:.62}
+.node.dim{opacity:.12}
+.node.sel circle.main{stroke:#fff!important;stroke-width:3.5px!important}
+.edge{fill:none;stroke:#344152;stroke-width:1.4}
+.edge.up{stroke:var(--accent);stroke-width:2.4}
+.edge.down{stroke:#6e5aa0;stroke-width:2;stroke-dasharray:5 4}
+.edge.dim{opacity:.1}
+/* panel */
+#panel{width:460px;max-width:100%;border-left:1px solid var(--line);background:var(--panel);overflow:auto;padding:18px 20px 40px}
+.empty{color:var(--muted);padding:30px 6px}
+.empty h2{color:var(--text);font-size:18px}
+.lvl{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.6px}
+.lvl1{background:rgba(76,201,240,.15);color:var(--l1)}
+.lvl2{background:rgba(249,168,38,.15);color:var(--l2)}
+.lvl3{background:rgba(199,125,255,.15);color:var(--l3)}
+.ptitle{font-size:21px;font-weight:700;margin:8px 0 4px}
+.status{font-size:12px;color:var(--muted)}
+.status.ok{color:var(--ok)}
+.sec{margin-top:18px}
+.sec h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted);margin:0 0 7px;font-weight:600}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:12px 14px}
+.ex{border-left:3px solid var(--l2)}
+pre{margin:0;background:#0a0f15;border:1px solid var(--line);border-radius:9px;padding:12px 14px;overflow:auto;font-family:"JetBrains Mono",monospace;font-size:12px;line-height:1.55;color:#cfe3ff}
+.codewrap{position:relative}
+.copy{position:absolute;top:6px;right:6px;background:var(--panel3);border:1px solid var(--line);border-radius:5px;padding:2px 8px;font-size:11px;color:var(--muted)}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.lk{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:12px}
+.lk:hover{border-color:var(--accent)}
+.lk.m{border-color:rgba(63,185,80,.5)}
+.q{font-weight:600;margin-bottom:10px}
+.opt{display:block;width:100%;text-align:left;background:var(--panel3);border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin:6px 0;transition:.15s}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.right{border-color:var(--ok);background:rgba(63,185,80,.12)}
+.opt.wrong{border-color:var(--bad);background:rgba(248,81,73,.1)}
+.opt:disabled{cursor:default}
+.fb{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:13px}
+.fb.good{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.4)}
+.fb.badf{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.4)}
+.fb.tip{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.4)}
+.fb b{display:block;margin-bottom:3px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input.fill{background:#0a0f15;border:1px solid var(--line);color:var(--text);padding:7px 10px;border-radius:7px;font-family:"JetBrains Mono",monospace;width:160px}
+textarea{width:100%;min-height:80px;background:#0a0f15;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px;font:inherit;resize:vertical}
+.btnp{background:var(--accent);color:#06121f;border:0;border-radius:7px;padding:7px 14px;font-weight:600}
+.btns{background:var(--panel3);border:1px solid var(--line);border-radius:7px;padding:7px 12px}
+.btnl{background:linear-gradient(90deg,#6d3fc0,#3f6fd8);border:0;border-radius:8px;padding:10px 14px;font-weight:600;width:100%;margin-top:4px}
+.ck{list-style:none;padding:0;margin:6px 0}
+.ck li{padding:2px 0}
+.warnbox{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.35);border-radius:8px;padding:8px 12px;font-size:12.5px;color:#e3c47a}
+/* labs */
+#labView{background:var(--bg)}
+#labNav{width:250px;border-right:1px solid var(--line);background:var(--panel);padding:14px;overflow:auto}
+#labNav h3{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;margin:4px 0 10px}
+.labItem{display:block;width:100%;text-align:left;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px}
+.labItem.on{border-color:var(--l3);background:#221a33}
+.labItem small{display:block;color:var(--muted);font-size:11.5px}
+.badge{background:var(--l3);color:#160a24;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:6px;text-transform:uppercase}
+#labMain{flex:1;overflow:auto;padding:20px 26px 60px;min-width:0}
+.labhead h2{margin:0 0 4px;font-size:22px}
+.labhead p{color:var(--muted);margin:0 0 14px;max-width:900px}
+.subtabs{display:flex;gap:6px;margin:6px 0 16px;flex-wrap:wrap}
+.subtabs button{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 12px;color:var(--muted)}
+.subtabs button.on{color:var(--text);border-color:var(--l3)}
+.labgrid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px}
+.plot{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.plot canvas{width:100%;display:block}
+.plot .cap{font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:14px;flex-wrap:wrap}
+.plot .cap span{display:inline-flex;align-items:center;gap:5px}
+.sw{width:12px;height:3px;display:inline-block;border-radius:2px}
+.side{display:flex;flex-direction:column;gap:12px}
+.ctl label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-bottom:2px}
+.ctl label b{color:var(--text);font-family:"JetBrains Mono",monospace;font-weight:500}
+input[type=range]{width:100%;accent-color:var(--l3)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat small{color:var(--muted);font-size:11px;display:block}
+.stat b{font-size:17px;font-family:"JetBrains Mono",monospace}
+.verdict{border-radius:9px;padding:10px 12px;font-size:13px}
+.v-good{background:rgba(63,185,80,.1);border:1px solid rgba(63,185,80,.45)}
+.v-bad{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.45)}
+.v-warn{background:rgba(210,153,34,.08);border:1px solid rgba(210,153,34,.45)}
+.verdict b{display:block;font-size:14px;margin-bottom:2px}
+.insight{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--l3);border-radius:9px;padding:12px 16px;max-width:1000px}
+.insight h4{margin:0 0 6px;font-size:13px;color:var(--l3)}
+.insight ul{margin:4px 0;padding-left:18px}
+.labquiz{margin-top:18px;max-width:760px}
+.labquiz h3{font-size:12px;text-transform:uppercase;letter-spacing:.9px;color:var(--muted)}
+.tok{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;margin:3px;font-family:"JetBrains Mono",monospace;font-size:13px}
+.tok.on{border-color:var(--l3);background:#2a1f45}
+.bars .bar{display:grid;grid-template-columns:90px 1fr 50px;gap:8px;align-items:center;font-size:12.5px;margin:3px 0;font-family:"JetBrains Mono",monospace}
+.bars .bar div{height:12px;border-radius:3px;background:var(--l3)}
+/* progress */
+#progView{overflow:auto;padding:22px 26px 60px;display:none;flex-direction:column}
+#progView.on{display:block}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;max-width:1100px}
+.meter{height:8px;background:var(--panel3);border-radius:5px;overflow:hidden;margin-top:8px}
+.meter div{height:100%}
+.mist{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.mist:last-child{border-bottom:0}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(30px);background:var(--panel3);border:1px solid var(--l3);padding:10px 18px;border-radius:9px;opacity:0;transition:.3s;z-index:20;font-size:13.5px;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%)}
+@media (max-width:900px){
+ #graphView{flex-direction:column}
+ #graphWrap{height:58vh;flex:none}
+ #panel{width:100%;border-left:0;border-top:1px solid var(--line)}
+ #graphView.on{overflow:auto}
+ #labView{flex-direction:column}
+ #labNav{width:100%;display:flex;gap:8px;overflow:auto;padding:10px}
+ #labNav h3{display:none}
+ .labItem{min-width:200px;margin:0}
+ .labgrid{grid-template-columns:1fr}
+ .today{margin-left:0}
+ main{height:auto;min-height:calc(100% - 54px)}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🧠 ML Knowledge Graph <span>· basic → advanced</span></h1>
+  <nav class="tabs">
+    <button class="tab on" data-v="graphView">Graph</button>
+    <button class="tab" data-v="labView">Topic of the day<span class="dot"></span></button>
+    <button class="tab" data-v="progView">Progress &amp; corrections</button>
+  </nav>
+  <div class="xp"><span>XP <b id="xpv">0</b></span><span>Mastered <b id="mv">0</b>/<b id="mt">0</b></span></div>
+</header>
+<main>
+  <section id="graphView" class="view on">
+    <div id="graphWrap">
+      <svg id="svg"><defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" fill="#4a5a6e"/></marker>
+        <filter id="glow"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs><g id="vp"><g id="edges"></g><g id="nodes"></g></g></svg>
+      <div class="toolbar">
+        <input class="search" id="search" placeholder="Search concepts…">
+        <span class="chip btn on" data-l="1"><i style="background:var(--l1)"></i>Basic</span>
+        <span class="chip btn on" data-l="2"><i style="background:var(--l2)"></i>Intermediate</span>
+        <span class="chip btn on" data-l="3"><i style="background:var(--l3)"></i>Advanced</span>
+        <div class="today" id="todayBox"></div>
+      </div>
+      <div class="legendBox">
+        <span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#1c2430" stroke="#58a6ff" stroke-width="2"/></svg>Ready</span>
+        <span><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#3fb950"/></svg>Mastered</span>
+        <span style="opacity:.6"><svg width="14" height="14"><circle cx="7" cy="7" r="5" fill="#151b23" stroke="#2a3441" stroke-width="2"/></svg>Prereqs pending</span>
+        <span><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#58a6ff" stroke-width="2"/></svg>Path to selected</span>
+      </div>
+      <div class="zoomBtns"><button id="zin">+</button><button id="zout">−</button><button id="zfit" title="Fit">⤢</button></div>
+    </div>
+    <aside id="panel"></aside>
+  </section>
+  <section id="labView" class="view">
+    <nav id="labNav"></nav>
+    <div id="labMain"></div>
+  </section>
+  <section id="progView" class="view"></section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   CONTENT: concepts, prerequisites, examples, challenges
+   ========================================================= */
+const N = [
+{id:'ml',t:'What is ML?',l:1,pre:[],
+s:`Machine learning fits a function to <b>examples</b> instead of hand-writing rules. The goal is not to remember the examples but to <b>predict well on new, unseen inputs</b> — generalization.`,
+ex:`Spam filter: instead of coding "if subject contains FREE", you show 50k labeled emails and the model learns which word patterns signal spam — including ones you never thought of.`,
+code:`# Traditional programming: you write the rule
+def is_spam(email):
+    return "free money" in email.lower()
+
+# Machine learning: the data writes the rule
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+vec = CountVectorizer()
+X = vec.fit_transform(emails)          # text -> word counts
+model = MultinomialNB().fit(X, labels)
+model.predict(vec.transform(["claim your prize now"]))`,
+q:{q:`Which description of machine learning is most accurate?`,o:[
+[`Writing if/else rules that cover every case`,0,`That is traditional programming. In ML the rules are inferred from data.`],
+[`Storing all training examples and looking them up later`,0,`That is pure memorization. A lookup table fails on anything it hasn't seen — ML must generalize.`],
+[`Fitting a function to examples so it predicts well on unseen data`,1,`"Unseen" is the key word. Training data is the means; generalization is the goal.`],
+[`Any program that uses statistics`,0,`Too broad. A program that computes an average uses statistics but learns nothing.`]]},
+xb:{p:`In 1–2 sentences: how is ML different from normal programming?`,keys:[[`say it learns from data/examples`,`data|example|sample`],[`say the rules are learned/inferred, not hand-written`,`learn|infer|fit|train|discover`],[`mention new/unseen inputs`,`new|unseen|generali|future`]],traps:[[`memori[sz]`,`Careful: memorizing isn't the goal — a model that only memorizes is useless on new inputs.`]],a:`Normal programs follow rules a human wrote; ML infers the rules from example data, aiming to make good predictions on new inputs it has never seen.`}},
+
+{id:'data',t:'Data & Features',l:1,pre:['ml'],
+s:`Each <b>row</b> is an example, each <b>column</b> a feature (input), and the <b>label</b> is what you predict. Early on, data quality and <b>leakage</b> matter more than model choice.`,
+ex:`House prices: features = sqft, bedrooms, zip, year built; label = sale price. Include "price per sqft" and the model cheats.`,
+code:`import pandas as pd
+df = pd.read_csv("houses.csv")
+X = df[["sqft", "bedrooms", "year_built", "zip"]]   # features
+y = df["price"]                                       # label
+X = pd.get_dummies(X, columns=["zip"])                # categorical -> numeric
+print(X.shape, y.describe())`,
+q:{q:`You're predicting house sale price. Which feature is <b>data leakage</b>?`,o:[
+[`Square footage`,0,`Legit: known before the sale and causally related to price.`],
+[`Price per sq ft computed from the final sale`,1,`It's derived from the label itself. Great validation score, useless in production.`],
+[`Neighborhood`,0,`Legit: available at prediction time.`],
+[`Year built`,0,`Legit: available at prediction time.`]]},
+xb:{p:`What's a feature vs. a label? Give an example.`,keys:[[`define features as inputs`,`input|column|attribute|variable|predictor`],[`define label as the target/output`,`label|target|output|predict|answer`],[`give a concrete example`,`e.g|example|like|such as|price|spam|for instance`]],traps:[],a:`Features are the input columns the model sees (e.g. sqft, bedrooms); the label is the target it learns to predict (e.g. sale price).`}},
+
+{id:'supervised',t:'Supervised Learning',l:1,pre:['data'],
+s:`Learn from labeled pairs <b>(x, y)</b>. Numeric y → <b>regression</b>; categorical y → <b>classification</b>.`,
+ex:`Regression: predict delivery time in minutes. Classification: predict whether a shipment will be delayed (yes/no).`,
+code:`from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+clf = RandomForestClassifier().fit(X_train, y_train)
+print("test accuracy:", clf.score(X_test, y_test))`,
+q:{q:`Predicting tomorrow's high temperature in °F is a…`,o:[
+[`Classification task`,0,`Temperature is continuous, not a set of categories (unless you bucket it into "hot/cold").`],
+[`Regression task`,1,`Continuous numeric target → regression.`],
+[`Clustering task`,0,`Clustering has no labels; here historical temperatures are the labels.`],
+[`Reinforcement learning task`,0,`No agent taking actions and receiving rewards.`]]},
+f:{code:`clf = RandomForestClassifier().fit(X_train, ___)`,ans:[`y_train`],hint:`The model needs the answers for the training rows.`,why:`fit(X, y): features and their matching labels — always from the same split.`}},
+
+{id:'unsup',t:'Unsupervised Learning',l:1,pre:['data'],
+s:`No labels — the algorithm finds <b>structure</b> on its own: groups (clustering), compact representations (PCA, autoencoders), or anomalies.`,
+ex:`Segmenting 10k customers by purchase behavior with no predefined segments; a human then names the clusters ("bargain hunters", "loyal premium").`,
+code:`from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+Z = PCA(n_components=2).fit_transform(X)    # 50 features -> 2
+groups = KMeans(n_clusters=4, n_init=10).fit_predict(Z)`,
+q:{q:`Which task is unsupervised?`,o:[
+[`Predicting churn (yes/no) from labeled history`,0,`Labels exist (churned or not) → supervised classification.`],
+[`Detecting spam from 50k labeled emails`,0,`Labeled → supervised.`],
+[`Grouping news articles by topic with no topic labels`,1,`The structure comes from the data alone.`],
+[`Predicting rent from apartment size`,0,`Numeric label → supervised regression.`]]}},
+
+{id:'linreg',t:'Linear Regression',l:1,pre:['supervised'],
+s:`Model: <b>ŷ = w·x + b</b>. Learning = choosing w and b to minimize average squared error. The "hello world" of ML — and still a strong baseline.`,
+ex:`Rent ≈ $2.10 × sqft + $300. The weight is the slope: each extra sqft adds about $2.10.`,
+code:`import numpy as np
+X = np.c_[sqft, np.ones(len(sqft))]           # add bias column
+w, b = np.linalg.lstsq(X, rent, rcond=None)[0]
+print(f"rent ≈ {w:.2f} * sqft + {b:.0f}")`,
+q:{q:`A fitted line has w = 3, b = 2. Prediction at x = 4?`,o:[
+[`12`,0,`You forgot the bias: 3·4 + 2.`],
+[`14`,1,`3·4 + 2 = 14.`],
+[`20`,0,`Looks like (3+2)·4. Multiply the weight by x first, then add b.`],
+[`9`,0,`That's 3+2+4 — the weight multiplies x, it isn't added.`]]},
+f:{code:`y_hat = X @ w + ___`,ans:[`b`,`bias`],hint:`The intercept term.`,why:`Without b, every line is forced through the origin.`}},
+
+{id:'loss',t:'Loss Functions',l:1,pre:['linreg'],
+s:`A loss turns "how wrong" into one number the optimizer can minimize. <b>MSE</b> for regression, <b>cross-entropy</b> for classification. Choosing a loss = choosing what "good" means.`,
+ex:`Errors [1,1,1,1] → MSE 1. Errors [0,0,0,4] → MSE 4. Same total error, but squaring punishes the outlier.`,
+code:`import numpy as np
+def mse(y, y_hat): return np.mean((y - y_hat) ** 2)
+def mae(y, y_hat): return np.mean(np.abs(y - y_hat))
+def bce(y, p, eps=1e-9):                      # binary cross-entropy
+    return -np.mean(y*np.log(p+eps) + (1-y)*np.log(1-p+eps))`,
+q:{q:`Why does MSE punish one big error more than several small ones?`,o:[
+[`Because it takes the mean`,0,`MAE takes a mean too and treats errors linearly. Squaring is what matters.`],
+[`Because errors are squared, so large errors grow quadratically`,1,`That's also why MSE is sensitive to outliers.`],
+[`Because it uses absolute values`,0,`That's MAE — linear in the error, more robust to outliers.`],
+[`It doesn't — all losses weight errors equally`,0,`Different losses encode different priorities; that's why the choice matters.`]]},
+xb:{p:`Why do we need a loss function at all?`,keys:[[`it measures/quantifies error`,`measur|quantif|score|how wrong|error|distance`],[`the optimizer minimizes it`,`minimi|optimi|reduce|lower|gradient|improve`]],traps:[[`maximi[sz]e (the )?loss`,`Flip that: we minimize loss (or maximize reward/likelihood).`]],a:`It quantifies how wrong predictions are as a single number, which gives the optimizer something to minimize.`}},
+
+{id:'split',t:'Train / Val / Test',l:1,pre:['supervised'],
+s:`Hold data back. <b>Train</b> to fit, <b>validation</b> to tune, <b>test</b> once at the end. The test set simulates the future — peek at it repeatedly and it's no longer "unseen".`,
+ex:`70/15/15 split. Try 30 hyperparameter settings scored on validation, pick the best, report test accuracy exactly once.`,
+code:`from sklearn.model_selection import train_test_split
+X_tmp, X_test, y_tmp, y_test = train_test_split(X, y, test_size=0.15, random_state=0)
+X_tr, X_val, y_tr, y_val   = train_test_split(X_tmp, y_tmp, test_size=0.18, random_state=0)
+# time series? split by date — never shuffle the future into training`,
+q:{q:`You tuned hyperparameters 50 times against the <b>test</b> set. What's the problem?`,o:[
+[`Nothing, as long as the final model is good`,0,`You can't know it's good — the test score is now biased upward.`],
+[`The test score is optimistically biased: you indirectly fit the test set`,1,`Test-set leakage. Tune on validation (or CV), test once.`],
+[`The model will underfit`,0,`Tuning on test doesn't cause underfitting; it corrupts your performance estimate.`],
+[`You need to shuffle more`,0,`Shuffling doesn't fix repeated peeking.`]]},
+f:{code:`train_test_split(X, y, test_size=___)`,ans:[`0?\\.[1-3][0-9]*`],hint:`A fraction, commonly 10–30%.`,why:`Typical: 0.2. With small data, prefer cross-validation.`}},
+
+{id:'logreg',t:'Logistic Regression',l:1,pre:['linreg','loss'],
+s:`Linear score z = w·x + b, squashed by the <b>sigmoid</b> σ(z) = 1/(1+e<sup>−z</sup>) into a probability. Threshold it (often 0.5) to get a class. Trained with cross-entropy.`,
+ex:`z = 1.6 → σ(1.6) ≈ 0.83 → "spam" at threshold 0.5. For fraud you might lower the threshold to 0.2 to catch more.`,
+code:`import numpy as np
+def sigmoid(z): return 1 / (1 + np.exp(-z))
+p = sigmoid(X @ w + b)
+pred = (p >= 0.5).astype(int)`,
+q:{q:`Logistic regression outputs 0.83 for "spam". This means…`,o:[
+[`The model is 83% accurate overall`,0,`Accuracy is a property of the model over a dataset, not of one prediction.`],
+[`83% of the email's words are spammy`,0,`It's a probability for the whole input, not a word fraction.`],
+[`The model's estimated probability that this email is spam is 0.83`,1,`Whether to trust it depends on calibration.`],
+[`The email is 83% spam`,0,`An email is spam or not; 0.83 is the model's confidence.`]]},
+f:{code:`def sigmoid(z): return 1 / (1 + np.exp(___))`,ans:[`-z`],hint:`Large positive z should give p → 1.`,why:`e^(−z) → 0 as z grows, so σ → 1.`}},
+
+{id:'metrics',t:'Evaluation Metrics',l:1,pre:['logreg','split'],
+s:`Accuracy hides failures on rare classes. <b>Precision</b>: of predicted positives, how many are right. <b>Recall</b>: of actual positives, how many you caught. <b>F1</b> balances them. Match the metric to the cost of errors.`,
+ex:`Cancer screening: a missed case is far worse than a false alarm → optimize recall. Spam filter: blocking a real email is costly → watch precision.`,
+code:`from sklearn.metrics import classification_report, confusion_matrix
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred, digits=3))`,
+q:{q:`Fraud is 1% of transactions. A model always predicts "not fraud". Its accuracy is…`,o:[
+[`1%`,0,`It's right on all 99% legit transactions.`],
+[`50%`,0,`Accuracy isn't averaged across classes.`],
+[`99% — and it's useless (recall = 0)`,1,`Classic imbalance trap. Check recall, precision, PR-AUC.`],
+[`Undefined`,0,`Accuracy is defined; recall for fraud is 0.`]]},
+xb:{p:`When is accuracy misleading, and what would you use instead?`,keys:[[`class imbalance / rare positives`,`imbalanc|rare|skew|minority|1%|uneven`],[`name a better metric`,`precision|recall|f1|auc|pr curve|confusion`]],traps:[],a:`With imbalanced classes a trivial majority-class model scores high accuracy; use precision, recall, F1 or PR-AUC instead.`}},
+
+{id:'gd',t:'Gradient Descent',l:2,pre:['loss'],lab:'gd',
+s:`Step downhill repeatedly: <b>w ← w − η·∇L(w)</b>. The learning rate η is the step size: too small = slow, too large = oscillate or diverge. SGD uses mini-batches for cheap, noisy steps.`,
+ex:`Gradient 4 at w=2 with η=0.1 → step to 1.6. With η=1.0 you'd jump to −2, past the minimum.`,
+code:`w = np.zeros(d)
+for step in range(1000):
+    grad = 2 * X.T @ (X @ w - y) / len(y)    # gradient of MSE
+    w = w - lr * grad
+    if step % 100 == 0: print(step, mse(y, X @ w))`,
+q:{q:`Training loss bounces up and down and grows each epoch. Most likely fix?`,o:[
+[`Increase the learning rate`,0,`That makes overshooting worse.`],
+[`Train for more epochs`,0,`Diverging longer won't converge.`],
+[`Lower the learning rate`,1,`Steps overshoot the valley. Try ÷3 or ÷10, or add warmup/schedule.`],
+[`Add more features`,0,`Capacity isn't the issue — the optimizer is unstable.`]]},
+f:{code:`w = w - lr * ___`,ans:[`grad`,`gradient`,`g`],hint:`Direction of steepest ascent — we subtract it.`,why:`Subtracting the gradient moves downhill.`}},
+
+{id:'overfit',t:'Overfitting & Generalization',l:2,pre:['split','linreg'],lab:'memo',
+s:`<b>Overfitting</b>: fits training noise and quirks — great on seen data, poor on new data. <b>Underfitting</b>: too simple to capture the pattern. The train–validation gap is your alarm bell.`,
+ex:`A student memorizes last year's answers (100% on practice) and fails a new exam with reworded questions.`,
+code:`for depth in [2, 4, 8, 16, None]:
+    m = DecisionTreeClassifier(max_depth=depth).fit(X_tr, y_tr)
+    print(depth, m.score(X_tr, y_tr), m.score(X_val, y_val))
+# watch train -> 1.0 while val drops`,
+q:{q:`Train accuracy 99%, validation 62%. Diagnosis?`,o:[
+[`Underfitting`,0,`Underfitting shows low training accuracy too.`],
+[`Overfitting — memorizing training specifics`,1,`Next: more data, regularization, simpler model, augmentation.`],
+[`Data leakage`,0,`Leakage usually inflates validation; here validation is low.`],
+[`A great model`,0,`A 37-point gap says it won't hold up on new data.`]]},
+xb:{p:`Explain overfitting to a friend in plain words.`,keys:[[`mention training/seen data`,`train|seen|practice`],[`mention new/unseen data`,`new|unseen|test|validation|real world`],[`say why — memorizing noise/specifics`,`memori|noise|too complex|specific|quirk|by heart`]],traps:[[`more data (causes|leads to|creates) overfit`,`More data usually reduces overfitting.`]],a:`The model learns the training examples too specifically — including their noise — so it scores great on data it has seen but poorly on new data.`}},
+
+{id:'reg',t:'Regularization',l:2,pre:['overfit'],
+s:`Discourages memorization: <b>L2</b>/weight decay shrinks weights, <b>L1</b> zeroes some out, <b>dropout</b> randomly disables units, <b>early stopping</b> halts before the model fits noise, <b>augmentation</b> adds variety.`,
+ex:`Ridge with λ=10 turns a wiggly degree-12 polynomial into a smooth curve that tracks the real trend.`,
+code:`from sklearn.linear_model import Ridge, Lasso
+Ridge(alpha=1.0).fit(X, y)       # L2
+Lasso(alpha=0.1).fit(X, y)       # L1 -> sparse weights
+# PyTorch:
+# torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.01)`,
+q:{q:`What happens if you crank the L2 strength λ very high?`,o:[
+[`Weights shrink toward zero and the model underfits`,1,`Regularization trades variance for bias — tune λ on validation.`],
+[`The model memorizes more`,0,`Opposite: it constrains the model.`],
+[`Weights grow`,0,`The penalty grows with weight size, so weights shrink.`],
+[`Training always becomes faster`,0,`Not reliable; the point is generalization.`]]},
+f:{code:`loss = mse + lam * np.sum(w ** ___)`,ans:[`2`],hint:`L2 = sum of squares.`,why:`Squared weights = L2. Use np.abs(w) for L1.`}},
+
+{id:'biasvar',t:'Bias–Variance Tradeoff',l:2,pre:['overfit'],lab:'memo',
+s:`Test error ≈ <b>bias²</b> (wrong assumptions) + <b>variance</b> (sensitivity to the training sample) + noise. Simple models: high bias. Flexible models: high variance. Very large nets complicate this ("double descent"), but it still guides debugging.`,
+ex:`Retrain a degree-15 polynomial on 5 samples → 5 wildly different curves (variance). A straight line looks the same every time — consistently wrong (bias).`,
+code:`# Estimate variance empirically with bootstrap retraining
+preds = []
+for seed in range(20):
+    idx = np.random.default_rng(seed).choice(len(X), len(X))
+    preds.append(make_model().fit(X[idx], y[idx]).predict(X_grid))
+variance = np.var(preds, axis=0).mean()`,
+q:{q:`Fitting a straight line to a sine wave gives…`,o:[
+[`High variance, low bias`,0,`A line barely changes between samples — low variance.`],
+[`High bias, low variance`,1,`Consistently wrong in the same way.`],
+[`Low bias, low variance`,0,`It can't represent the curve, so bias is high.`],
+[`High bias, high variance`,0,`Lines are stable across samples.`]]}},
+
+{id:'cv',t:'Cross-Validation',l:2,pre:['split','overfit'],
+s:`<b>k-fold CV</b>: split into k folds, train on k−1, validate on the held-out fold, rotate, average. More reliable than one split, especially on small data. Still keep a final test set.`,
+ex:`5-fold on 1,000 rows → scores 0.81, 0.79, 0.84, 0.80, 0.82 → 0.81 ± 0.02.`,
+code:`from sklearn.model_selection import cross_val_score
+scores = cross_val_score(model, X, y, cv=5, scoring="f1")
+print(scores.mean(), scores.std())`,
+q:{q:`Main benefit of 5-fold CV over one train/val split?`,o:[
+[`Training is faster`,0,`It's ~5× slower — you train 5 models.`],
+[`It removes the need for a test set`,0,`If you tune with CV, keep an untouched test set for the final number.`],
+[`It prevents overfitting entirely`,0,`It estimates it better; it doesn't prevent it.`],
+[`Every point is validated once → a more reliable, lower-variance estimate`,1,`And the ± tells you how noisy your estimate is.`]]},
+f:{code:`cross_val_score(model, X, y, cv=___)`,ans:[`[3-9]`,`10`],hint:`Common choices: 5 or 10.`,why:`5 or 10 folds balance bias of the estimate vs compute.`}},
+
+{id:'trees',t:'Trees & Ensembles',l:2,pre:['supervised','overfit'],
+s:`A <b>decision tree</b> asks a sequence of yes/no questions. Deep trees memorize. <b>Random forests</b> average many trees on bootstrap samples (less variance); <b>gradient boosting</b> adds trees that fix previous errors. Kings of tabular data.`,
+ex:`Loan approval: "income > 50k?" → "debt ratio < 0.4?" → approve. A forest of 500 such trees votes.`,
+code:`from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
+rf  = RandomForestClassifier(n_estimators=500, max_features="sqrt").fit(X_tr, y_tr)
+gbm = HistGradientBoostingClassifier(max_depth=6, learning_rate=0.05).fit(X_tr, y_tr)`,
+q:{q:`Why does a random forest usually beat a single deep tree?`,o:[
+[`Averaging many decorrelated trees cancels individual errors (lower variance)`,1,`Bagging + random feature subsets decorrelate the trees.`],
+[`Each tree in a forest is more accurate than a single tree`,0,`Individual forest trees are often worse — the gain comes from averaging.`],
+[`Forests use neural networks inside`,0,`No neural nets involved.`],
+[`Forests memorize training data better`,0,`A single deep tree already memorizes; forests generalize better.`]]}},
+
+{id:'kmeans',t:'Clustering (k-means)',l:2,pre:['unsup'],
+s:`<b>k-means</b> alternates: assign each point to its nearest centroid, move each centroid to the mean of its points. Repeat until stable. You choose k; scale features first.`,
+ex:`Placing 3 warehouses to minimize distance to 500 stores — centroids become warehouse sites.`,
+code:`from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+Xs = StandardScaler().fit_transform(X)        # scale first!
+km = KMeans(n_clusters=3, n_init=10).fit(Xs)
+print(km.inertia_)   # try several k -> "elbow" plot`,
+q:{q:`k-means with k=3 on data with 2 obvious blobs. What happens?`,o:[
+[`It detects there are only 2 clusters`,0,`k is fixed by you; k-means never changes it.`],
+[`It still returns 3 clusters, splitting one blob`,1,`Use elbow or silhouette score to choose k.`],
+[`It throws an error`,0,`It runs fine — it answers the question you asked.`],
+[`It returns 1 cluster`,0,`It always returns exactly k clusters.`]]}},
+
+{id:'nn',t:'Neural Networks',l:2,pre:['logreg','gd'],
+s:`Layers of <b>weighted sums + bias</b> followed by a <b>nonlinearity</b>. With enough units they approximate very complex functions. Training = gradient descent on all weights.`,
+ex:`Digits: 784 pixels → 128 hidden units → 10 outputs, softmax for probabilities.`,
+code:`import torch.nn as nn
+model = nn.Sequential(
+    nn.Linear(784, 128), nn.ReLU(),
+    nn.Linear(128, 10)                 # logits for 10 digits
+)`,
+q:{q:`A 10-layer network with <b>no</b> activation functions is equivalent to…`,o:[
+[`A deep nonlinear model`,0,`Composing linear maps gives a linear map — depth adds nothing.`],
+[`A single linear layer`,1,`W3(W2(W1x)) = (W3W2W1)x. Nonlinearities make depth useful.`],
+[`A decision tree`,0,`Trees are piecewise constant; this is linear.`],
+[`A convolutional network`,0,`Convolution is about weight sharing, not this.`]]},
+f:{code:`h = relu(W1 @ x + b1);  y = W2 @ ___ + b2`,ans:[`h`],hint:`What does the output layer read?`,why:`Each layer feeds the next — the output layer reads the hidden activations.`}},
+
+{id:'act',t:'Activation Functions',l:2,pre:['nn'],
+s:`Activations add nonlinearity. <b>Sigmoid/tanh</b> saturate (gradients → 0 at extremes). <b>ReLU</b> = max(0, x): cheap, non-saturating for x>0. <b>GELU/SiLU</b>: smooth variants used in transformers.`,
+ex:`Sigmoid's max derivative is 0.25. Through 10 layers: ≤ 0.25¹⁰ ≈ 1e-6 — the vanishing gradient.`,
+code:`import numpy as np
+relu    = lambda x: np.maximum(0, x)
+sigmoid = lambda x: 1 / (1 + np.exp(-x))
+gelu    = lambda x: 0.5*x*(1 + np.tanh(0.7978845608*(x + 0.044715*x**3)))`,
+q:{q:`Why did ReLU largely replace sigmoid in hidden layers?`,o:[
+[`It outputs probabilities`,0,`That's sigmoid's job at the output layer.`],
+[`It's bounded between 0 and 1`,0,`ReLU is unbounded above.`],
+[`Its gradient doesn't saturate for positive inputs, easing vanishing gradients`,1,`Gradient is exactly 1 for x > 0.`],
+[`It's smoother`,0,`ReLU has a kink at 0; GELU is the smooth one.`]]}},
+
+{id:'backprop',t:'Backpropagation',l:2,pre:['nn','gd'],
+s:`<b>Backprop</b> computes the gradient of the loss w.r.t. every weight by applying the <b>chain rule</b> backward, reusing intermediate results. The <b>optimizer</b> (SGD, Adam) then uses those gradients to update weights.`,
+ex:`L = (w·x)². dL/dw = 2(w·x)·x. At w=3, x=2 → 24.`,
+code:`import torch
+w = torch.tensor(3.0, requires_grad=True); x = torch.tensor(2.0)
+L = (w * x) ** 2
+L.backward()          # backprop: chain rule
+print(w.grad)         # 2*w*x*x = 24
+# optimizer.step() would then update w`,
+q:{q:`Backpropagation is fundamentally…`,o:[
+[`An optimizer that updates the weights`,0,`Common mix-up. Backprop computes gradients; SGD/Adam updates weights.`],
+[`An efficient use of the chain rule to compute gradients`,1,`Reverse-mode autodiff.`],
+[`Sending inputs forward through the network`,0,`That's the forward pass.`],
+[`A regularization technique`,0,`It computes gradients; it doesn't constrain the model.`]]},
+xb:{p:`What's the difference between backprop and gradient descent?`,keys:[[`backprop computes gradients/derivatives`,`gradient|derivative`],[`via the chain rule / backward pass`,`chain|backward`],[`GD/optimizer updates the weights`,`updat|step|optimi|adjust`]],traps:[[`backprop\\w* (updates|changes|adjusts) (the )?weights`,`Backprop computes gradients; the optimizer uses them to update weights.`]],a:`Backprop computes the gradient of the loss for every weight via the chain rule; gradient descent (the optimizer) uses those gradients to update the weights.`}},
+
+{id:'embed',t:'Embeddings',l:2,pre:['nn'],
+s:`An <b>embedding</b> maps discrete things (words, products, users) to dense vectors where <b>geometry ≈ meaning</b>: similar items are close (cosine similarity), and directions can encode relations.`,
+ex:`vec("Paris") − vec("France") + vec("Italy") ≈ vec("Rome"). In e-commerce, items bought together end up nearby.`,
+code:`import numpy as np, torch, torch.nn as nn
+def cosine(a, b): return a @ b / (np.linalg.norm(a) * np.linalg.norm(b))
+emb = nn.Embedding(num_embeddings=50_000, embedding_dim=256)
+v = emb(torch.tensor([1234]))       # token id -> 256-d vector`,
+q:{q:`"king − man + woman ≈ queen" demonstrates that…`,o:[
+[`Directions in embedding space can encode relationships`,1,`Roughly — real analogies are noisier than demos suggest.`],
+[`The model memorized this exact analogy`,0,`It's an emergent geometric regularity, not a stored fact.`],
+[`Embeddings are one-hot vectors`,0,`One-hot vectors are all equidistant — no meaning in their geometry.`],
+[`Word order matters in embeddings`,0,`Static word embeddings ignore order.`]]},
+f:{code:`cosine = a @ b / (norm(a) * ___)`,ans:[`norm\\(b\\)`],hint:`Normalize both vectors.`,why:`Divide by both lengths so only direction matters.`}},
+
+{id:'cnn',t:'Convolutional Nets',l:3,pre:['backprop','act'],
+s:`<b>CNNs</b> slide small learned filters across an image. <b>Weight sharing</b> slashes parameters and gives translation equivariance; stacked layers build edges → textures → parts → objects.`,
+ex:`A 3×3 filter has 9 weights reused at every position of a 224×224 image, vs ~50k weights per unit in a dense layer.`,
+code:`model = nn.Sequential(
+    nn.Conv2d(3, 32, kernel_size=3, padding=1), nn.ReLU(), nn.MaxPool2d(2),
+    nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(), nn.MaxPool2d(2),
+    nn.Flatten(), nn.Linear(64*56*56, 10))`,
+q:{q:`Main reason CNNs need far fewer parameters than dense nets on images?`,o:[
+[`They use lower-precision numbers`,0,`Precision is orthogonal to architecture.`],
+[`They skip most pixels`,0,`Every pixel is covered; the filter is reused.`],
+[`Weight sharing: one small filter is reused at every position`,1,`Same detector everywhere.`],
+[`Pooling layers remove all parameters`,0,`Pooling has no parameters, but weight sharing is the main saving.`]]}},
+
+{id:'rnn',t:'RNNs & LSTMs',l:3,pre:['backprop','embed'],
+s:`<b>RNNs</b> read sequences one step at a time, carrying a hidden state. <b>LSTMs/GRUs</b> add gates to keep information longer. Downsides: sequential (slow to train) and long-range dependencies still fade.`,
+ex:`"The keys to the cabinet <b>are</b>…" — agreeing "are" with "keys" means remembering a word 4 steps back.`,
+code:`rnn = nn.LSTM(input_size=256, hidden_size=512, batch_first=True)
+out, (h, c) = rnn(token_embeddings)    # processes t = 1..T in order`,
+q:{q:`Which RNN limitation most motivated transformers?`,o:[
+[`They can't process text`,0,`They process text fine.`],
+[`Sequential processing limits parallelism, and long-range dependencies fade`,1,`Attention connects any two positions directly, in parallel.`],
+[`They have too few parameters`,0,`Size isn't the core issue.`],
+[`They have no gradients`,0,`They have gradients — sometimes vanishing ones.`]]}},
+
+{id:'attn',t:'Attention',l:3,pre:['embed','rnn'],lab:'attn',
+s:`Each token pulls information from every other: weights = softmax(<b>QKᵀ/√d</b>), output = weights·<b>V</b>. Queries ask, keys advertise, values carry content. Weights are computed fresh for every input.`,
+ex:`"The animal didn't cross the street because it was too tired" — "it" can put most of its weight on "animal".`,
+code:`import numpy as np
+def attention(Q, K, V):
+    d = Q.shape[-1]
+    scores = Q @ K.T / np.sqrt(d)
+    w = np.exp(scores - scores.max(-1, keepdims=True))
+    w = w / w.sum(-1, keepdims=True)        # softmax over keys
+    return w @ V, w`,
+q:{q:`Why divide attention scores by √d?`,o:[
+[`To turn scores into probabilities`,0,`Softmax does that.`],
+[`To keep dot products from growing with dimension and saturating the softmax`,1,`Large scores → near one-hot softmax → tiny gradients.`],
+[`To make attention causal`,0,`Causality comes from masking future positions.`],
+[`To speed up computation`,0,`It's one division; the purpose is numerical.`]]},
+f:{code:`weights = softmax(Q @ K.T / np.sqrt(___))`,ans:[`d`,`d_k`,`dk`,`d_model`,`d_head`],hint:`The key/query dimension.`,why:`Scaling by √d keeps score variance ~1.`}},
+
+{id:'transformer',t:'Transformers',l:3,pre:['attn'],
+s:`A <b>block</b> = multi-head attention + MLP, each wrapped in a residual connection and layer norm. Stack dozens. Add <b>positional information</b> (sinusoidal, learned, RoPE) since attention alone ignores order.`,
+ex:`GPT-style: tokens → embeddings + positions → N blocks with causal masking → logits for the next token.`,
+code:`class Block(nn.Module):
+    def __init__(s, d, h):
+        super().__init__()
+        s.ln1, s.ln2 = nn.LayerNorm(d), nn.LayerNorm(d)
+        s.attn = nn.MultiheadAttention(d, h, batch_first=True)
+        s.mlp  = nn.Sequential(nn.Linear(d, 4*d), nn.GELU(), nn.Linear(4*d, d))
+    def forward(s, x, mask=None):
+        a = s.ln1(x)
+        x = x + s.attn(a, a, a, attn_mask=mask)[0]   # residual
+        return x + s.mlp(s.ln2(x))                   # residual`,
+q:{q:`Without positional information, self-attention treats "dog bites man" and "man bites dog"…`,o:[
+[`Differently, because attention reads left to right`,0,`Attention has no built-in order — that's why positions are added.`],
+[`As the same bag of tokens, just permuted`,1,`Self-attention is permutation-equivariant.`],
+[`It cannot process them`,0,`It processes them — just without order.`],
+[`It reverses them`,0,`No inherent direction exists.`]]}},
+
+{id:'llm',t:'LLMs & Pretraining',l:3,pre:['transformer'],
+s:`<b>LLMs</b> are transformers pretrained to <b>predict the next token</b> on huge corpora. Doing that well requires modeling grammar, facts and reasoning patterns. Capabilities grow with scale; post-training shapes behavior.`,
+ex:`"The capital of France is" → highest-probability next token " Paris". Temperature controls sampling randomness.`,
+code:`from transformers import AutoTokenizer, AutoModelForCausalLM
+tok = AutoTokenizer.from_pretrained("gpt2")
+lm  = AutoModelForCausalLM.from_pretrained("gpt2")
+ids = tok("The capital of France is", return_tensors="pt").input_ids
+out = lm.generate(ids, max_new_tokens=5, do_sample=False)
+print(tok.decode(out[0]))`,
+q:{q:`The pretraining objective of a GPT-style LLM is…`,o:[
+[`Answer questions correctly`,0,`That's a downstream behavior, not the objective.`],
+[`Maximize human preference ratings`,0,`That's RLHF/preference tuning, after pretraining.`],
+[`Predict the next token`,1,`Simple objective, rich consequences.`],
+[`Fill in randomly masked words`,0,`That's BERT-style masked language modeling.`]]},
+xb:{p:`Why can "just predicting the next token" produce capable models?`,keys:[[`predicting well requires modeling patterns/structure`,`pattern|structure|model|understand|represent|compress|reason`],[`scale of data/compute`,`data|scale|large|huge|billion|trillion|corpus`]],traps:[],a:`To predict text well across a huge, diverse corpus, the model must internally represent the structure behind it — syntax, facts, reasoning patterns — and scale lets it learn more of that.`}},
+
+{id:'finetune',t:'Fine-tuning, LoRA & RLHF',l:3,pre:['llm','reg'],
+s:`Adapt a pretrained model: <b>full fine-tuning</b>, <b>LoRA</b> (small low-rank adapters, base frozen), <b>instruction tuning</b> (prompt→response pairs), <b>RLHF/DPO</b> (optimize toward human preferences).`,
+ex:`Support bot: LoRA-tune a 7B model on 5k past tickets. Adapter ≈ tens of MB vs ~14 GB for full fp16 weights.`,
+code:`from peft import LoraConfig, get_peft_model
+cfg = LoraConfig(r=8, lora_alpha=16, target_modules=["q_proj", "v_proj"], lora_dropout=0.05)
+model = get_peft_model(base_model, cfg)
+model.print_trainable_parameters()    # well under 1% of weights`,
+q:{q:`LoRA reduces fine-tuning cost by…`,o:[
+[`Deleting unused layers`,0,`No layers are removed.`],
+[`Training small low-rank update matrices while freezing the base weights`,1,`ΔW = B·A with rank r ≪ d.`],
+[`Using less training data`,0,`Data size is independent of LoRA.`],
+[`Only quantizing the model`,0,`That's QLoRA's extra trick — quantization + LoRA.`]]}},
+
+{id:'grok',t:'Memorization vs Generalization',l:3,pre:['reg','biasvar','nn'],lab:'memo',
+s:`A model can hit 100% training accuracy by <b>memorizing</b>, then — with regularization and long training — later <b>generalize</b> ("grokking"). Interpretability work on such models found the generalizing solution uses structured internal representations (e.g. Fourier/circular features for modular arithmetic), while early on it behaves like a lookup table.`,
+ex:`Training on (a + b) mod p with part of the table held out: train accuracy saturates early; validation sits near chance for a long time, then climbs to ~100%.`,
+code:`# Diagnose memorization vs learning
+train_acc = evaluate(model, train_set)
+val_acc   = evaluate(model, val_set)          # held-out, same distribution
+ood_acc   = evaluate(model, shifted_set)      # rephrased / perturbed inputs
+noisy     = x + 0.01 * torch.randn_like(x)
+flip_rate = (model(x).argmax(-1) != model(noisy).argmax(-1)).float().mean()
+print(train_acc, val_acc, ood_acc, flip_rate)`,
+q:{q:`In grokking experiments, what typically happens?`,o:[
+[`Validation accuracy rises first, then training accuracy`,0,`Reversed — training saturates first.`],
+[`Both rise together`,0,`That's the normal case; grokking is notable because they're far apart.`],
+[`Training accuracy hits ~100% early; validation jumps much later, often helped by weight decay`,1,`Memorize first, generalize later.`],
+[`The model never generalizes`,0,`It does — eventually, under the right conditions.`]]},
+xb:{p:`How could you tell whether a model memorized or truly learned a pattern?`,keys:[[`test on held-out data`,`held|unseen|new|test|validation`],[`probe robustness: perturb/shift/rephrase inputs`,`perturb|shift|noise|rephras|ood|out-of-distribution|variation|robust`],[`inspect internal structure`,`structure|representation|rule|interpret|probe|circuit|weights|embedding`]],traps:[[`train(ing)? (loss|accuracy|score) (alone )?(proves|shows|tells)`,`Low training loss can't distinguish them — memorizers ace training data too.`]],a:`Check held-out accuracy, check robustness to small perturbations and distribution shift, and inspect internal representations for structure that encodes the rule rather than a lookup table.`}},
+
+{id:'interp',t:'Interpretability',l:3,pre:['transformer','grok'],
+s:`What does a model compute internally? Tools: <b>attribution</b> (which inputs mattered), <b>probing</b> (is info linearly decodable?), <b>causal interventions/patching</b>, and <b>mechanistic</b> circuit analysis. Key caution: decodable ≠ used.`,
+ex:`Patch the "Paris" activation from one prompt into another and see if the answer changes — causal evidence, not just correlation.`,
+code:`from sklearn.linear_model import LogisticRegression
+acts  = get_activations(model, texts, layer=12)     # [N, d]
+probe = LogisticRegression(max_iter=1000).fit(acts[:800], labels[:800])
+print("probe acc:", probe.score(acts[800:], labels[800:]))
+# next: ablate the probe direction & check if behavior changes`,
+q:{q:`A linear probe on layer 12 predicts sentiment with 95% accuracy. Strongest valid conclusion?`,o:[
+[`The model uses sentiment at layer 12 to make its decisions`,0,`Decodable ≠ used. You need an intervention (ablate/steer) to show causal use.`],
+[`Sentiment information is linearly decodable from layer 12`,1,`Exactly as strong as the evidence.`],
+[`Layer 12 contains a single sentiment neuron`,0,`A linear probe finds a direction, not necessarily one neuron.`],
+[`The model is safe`,0,`Unrelated leap.`]]}},
+
+{id:'rl',t:'Reinforcement Learning',l:3,pre:['nn','gd'],
+s:`An agent acts, gets rewards, and learns a <b>policy</b> maximizing long-term return. Core tension: <b>explore</b> vs <b>exploit</b>. Rewards are easy to mis-specify.`,
+ex:`A robot vacuum rewarded for "no visible dirt" learns to cover its camera — reward hacking.`,
+code:`import numpy as np
+Q = np.zeros((n_states, n_actions))
+for ep in range(5000):
+    s, done = env.reset(), False
+    while not done:
+        a = np.random.randint(n_actions) if np.random.rand() < eps else Q[s].argmax()
+        s2, r, done = env.step(a)
+        Q[s, a] += alpha * (r + gamma * Q[s2].max() * (not done) - Q[s, a])
+        s = s2`,
+q:{q:`An agent finds a bug giving huge reward without doing the intended task. This is…`,o:[
+[`Overfitting`,0,`Related flavor, but the term is about exploiting the reward spec.`],
+[`Exploration`,0,`Exploration is trying actions; this is exploiting a flaw.`],
+[`Reward hacking / specification gaming`,1,`Fix the reward, add constraints, or learn rewards from human feedback.`],
+[`Generalization`,0,`It generalized the wrong objective.`]]}},
+
+{id:'diffusion',t:'Diffusion Models',l:3,pre:['cnn'],
+s:`Learn to reverse a noising process: add noise to data and train a network to <b>predict the noise</b>. To generate, start from pure noise and denoise step by step, optionally guided by text.`,
+ex:`"a lighthouse at dusk" → 30–50 denoising steps turn static into an image, steered by a text encoder.`,
+code:`t     = torch.randint(0, T, (batch,))
+noise = torch.randn_like(x0)
+xt    = sqrt_ab[t] * x0 + sqrt_1mab[t] * noise     # forward (noising)
+loss  = F.mse_loss(unet(xt, t), noise)             # learn to predict noise`,
+q:{q:`During training, a diffusion model learns to…`,o:[
+[`Classify images into categories`,0,`Not a classifier.`],
+[`Predict the noise that was added at a given noise level`,1,`The core denoising objective.`],
+[`Distinguish real from fake images`,0,`That's a GAN discriminator.`],
+[`Compress images into a small code`,0,`Autoencoders do that (latent diffusion uses one, but that's not the diffusion objective).`]]}}
+];
+
+const LABS=[
+ {id:'gd',short:'Gradient Descent Lab',t:'Learning-rate intuition: why training explodes',node:'gd'},
+ {id:'attn',short:'Attention Lens',t:'What does "it" attend to?',node:'attn'},
+ {id:'memo',short:'Learned vs Memorized',t:'Visualizing a well-learned model vs a mechanically memorized one',node:'grok'}
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const KEY='mlkg-v1';
+const blank=()=>({mcq:{},fill:{},x:{},tries:{},xp:0,mist:[],lab:{}});
+let S;try{S=Object.assign(blank(),JSON.parse(localStorage.getItem(KEY))||{})}catch(e){S=blank()}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const byId={};N.forEach(n=>byId[n.id]=n);
+N.forEach(n=>n.next=N.filter(m=>m.pre.includes(n.id)).map(m=>m.id));
+const mastered=id=>{const n=byId[id];if(!S.mcq[id])return false;return (n.f||n.xb)?!!(S.fill[id]||S.x[id]):true};
+const avail=id=>byId[id].pre.every(mastered);
+const $=s=>document.querySelector(s);
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const LC={1:'#4cc9f0',2:'#f9a826',3:'#c77dff'};
+const LN={1:'Basic',2:'Intermediate',3:'Advanced'};
+function toast(m){const t=$('#toast');t.innerHTML=m;t.classList.add('show');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('show'),2600)}
+function addXP(v){S.xp+=v;save();updHeader()}
+function updHeader(){$('#xpv').textContent=S.xp;$('#mv').textContent=N.filter(n=>mastered(n.id)).length;$('#mt').textContent=N.length}
+function logMistake(id,kind,text){S.mist.unshift({id,kind,text,t:Date.now()});S.mist=S.mist.slice(0,40);save()}
+
+/* =========================================================
+   GRAPH LAYOUT
+   ========================================================= */
+const dm={};const depth=id=>dm[id]!=null?dm[id]:(dm[id]=byId[id].pre.length?1+Math.max(...byId[id].pre.map(depth)):0);
+N.forEach(n=>n.depth=depth(n.id));
+const COLW=122;
+(function layout(){
+  const cols={};N.forEach(n=>(cols[n.depth]=cols[n.depth]||[]).push(n));
+  Object.values(cols).forEach(a=>a.forEach((n,i)=>{n.x=n.depth*COLW;n.y=(i-(a.length-1)/2)*100;n.vx=0;n.vy=0}));
+  const E=[];N.forEach(n=>n.pre.forEach(p=>E.push([byId[p],n])));
+  for(let it=0;it<600;it++){
+    for(const n of N){n.vy+=-n.y*0.002;n.vx+=(n.depth*COLW-n.x)*0.15}
+    for(let i=0;i<N.length;i++)for(let j=i+1;j<N.length;j++){
+      const a=N[i],b=N[j];let dx=b.x-a.x,dy=b.y-a.y;const d2=dx*dx+dy*dy+1;
+      if(d2>60000)continue;const f=900/d2;a.vx-=dx*f*.3;b.vx+=dx*f*.3;a.vy-=dy*f;b.vy+=dy*f}
+    for(const [s,t] of E){const dy=t.y-s.y;s.vy+=dy*0.012;t.vy-=dy*0.012}
+    for(const n of N){n.vx*=.55;n.vy*=.55;n.x+=n.vx;n.y+=n.vy}
+  }
+})();
+
+const svg=$('#svg'),vp=$('#vp'),gE=$('#edges'),gN=$('#nodes');
+const NS='http://www.w3.org/2000/svg';
+const R=n=>n.l===1?20:n.l===2?23:26;
+const edges=[];
+N.forEach(n=>n.pre.forEach(p=>{const el=document.createElementNS(NS,'path');el.setAttribute('class','edge');el.setAttribute('marker-end','url(#arr)');gE.appendChild(el);edges.push({s:byId[p],t:n,el})}));
+function edgePath(e){const a=e.s,b=e.t,ra=R(a),rb=R(b)+4;const x1=a.x+ra,x2=b.x-rb,mx=(x1+x2)/2;return `M${x1},${a.y} C${mx},${a.y} ${mx},${b.y} ${x2},${b.y}`}
+N.forEach(n=>{
+  const g=document.createElementNS(NS,'g');g.setAttribute('class','node');g.dataset.id=n.id;
+  const r=R(n);
+  g.innerHTML=`<circle class="halo" r="${r+7}" fill="none" stroke="${LC[n.l]}" stroke-opacity="0" stroke-width="2"/>
+  <circle class="main" r="${r}"/>
+  <text class="ic" y="4" style="font-size:12px;font-weight:700"></text>
+  ${wrap(n.t).map((s,i)=>`<text y="${r+17+i*15}">${esc(s)}</text>`).join('')}`;
+  gN.appendChild(g);n.g=g;
+});
+function wrap(t){if(t.length<=16)return[t];const w=t.split(' ');let a='',b='';for(const x of w){if((a+' '+x).trim().length<=16&&!b)a=(a+' '+x).trim();else b=(b+' '+x).trim()}return b?[a,b]:[a]}
+function place(){N.forEach(n=>n.g.setAttribute('transform',`translate(${n.x},${n.y})`));edges.forEach(e=>e.el.setAttribute('d',edgePath(e)))}
+let sel=null,filt={1:1,2:1,3:1},q='';
+function ancestors(id,set=new Set()){byId[id].pre.forEach(p=>{if(!set.has(p)){set.add(p);ancestors(p,set)}});return set}
+function descendants(id,set=new Set()){byId[id].next.forEach(p=>{if(!set.has(p)){set.add(p);descendants(p,set)}});return set}
+function refreshGraph(){
+  const up=sel?ancestors(sel):new Set(),down=sel?descendants(sel):new Set();
+  N.forEach(n=>{
+    const m=mastered(n.id),a=avail(n.id);
+    const c=n.g.querySelector('.main'),ic=n.g.querySelector('.ic'),h=n.g.querySelector('.halo');
+    c.setAttribute('fill',m?LC[n.l]:a?'#1c2430':'#151b23');
+    c.setAttribute('stroke',m?'#3fb950':a?LC[n.l]:'#2a3441');
+    c.setAttribute('stroke-width',m?3:2.5);
+    ic.textContent=m?'✓':n.lab?'◆':'';ic.setAttribute('fill',m?'#08130b':LC[n.l]);
+    h.setAttribute('stroke-opacity',a&&!m?.35:0);
+    const match=(!q||n.t.toLowerCase().includes(q)||n.s.toLowerCase().includes(q))&&filt[n.l];
+    n.g.classList.toggle('locked',!a&&!m);
+    n.g.classList.toggle('dim',!match);
+    n.g.classList.toggle('sel',sel===n.id);
+  });
+  edges.forEach(e=>{
+    const isUp=sel&&(e.t.id===sel||up.has(e.t.id))&&up.has(e.s.id);
+    const isDown=sel&&(e.s.id===sel||down.has(e.s.id))&&down.has(e.t.id);
+    e.el.setAttribute('class','edge'+(isUp?' up':isDown?' down':'')+(sel&&!isUp&&!isDown?' dim':''));
+  });
+  updHeader();
+}
+/* pan / zoom / drag */
+let T={x:0,y:0,k:1};
+const applyT=()=>vp.setAttribute('transform',`translate(${T.x},${T.y}) scale(${T.k})`);
+function fit(){const r=svg.getBoundingClientRect();if(!r.width)return;let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;N.forEach(n=>{x0=Math.min(x0,n.x);x1=Math.max(x1,n.x);y0=Math.min(y0,n.y);y1=Math.max(y1,n.y)});
+  const k=Math.max(.72,Math.min(r.width/(x1-x0+140),(r.height-90)/(y1-y0+120),1.4));T.k=k;T.x=Math.max(r.width/2-(x0+x1)/2*k,70-x0*k);if((x1-x0)*k+140>r.width)T.x=70-x0*k;T.y=(r.height+40)/2-(y0+y1)/2*k;applyT()}
+function zoomAt(f,mx,my){const k2=Math.max(.3,Math.min(3,T.k*f));T.x=mx-(mx-T.x)*k2/T.k;T.y=my-(my-T.y)*k2/T.k;T.k=k2;applyT()}
+svg.addEventListener('wheel',e=>{e.preventDefault();const r=svg.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*.0015),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+$('#zin').onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(1.25,r.width/2,r.height/2)};
+$('#zout').onclick=()=>{const r=svg.getBoundingClientRect();zoomAt(.8,r.width/2,r.height/2)};
+$('#zfit').onclick=fit;
+let drag=null;
+svg.addEventListener('pointerdown',e=>{
+  const g=e.target.closest('.node');svg.setPointerCapture(e.pointerId);
+  drag={id:g?g.dataset.id:null,sx:e.clientX,sy:e.clientY,tx:T.x,ty:T.y,moved:false,nx:g?byId[g.dataset.id].x:0,ny:g?byId[g.dataset.id].y:0};
+  if(!g)svg.classList.add('panning');
+});
+svg.addEventListener('pointermove',e=>{
+  if(!drag)return;const dx=e.clientX-drag.sx,dy=e.clientY-drag.sy;if(Math.abs(dx)+Math.abs(dy)>4)drag.moved=true;
+  if(drag.id){const n=byId[drag.id];n.x=drag.nx+dx/T.k;n.y=drag.ny+dy/T.k;place()}else{T.x=drag.tx+dx;T.y=drag.ty+dy;applyT()}
+});
+svg.addEventListener('pointerup',()=>{svg.classList.remove('panning');if(drag&&!drag.moved){if(drag.id)select(drag.id);else{sel=null;refreshGraph();renderPanel()}}drag=null});
+$('#search').oninput=e=>{q=e.target.value.toLowerCase().trim();refreshGraph()};
+document.querySelectorAll('.chip[data-l]').forEach(c=>c.onclick=()=>{const l=c.dataset.l;filt[l]=filt[l]?0:1;c.classList.toggle('on',!!filt[l]);refreshGraph()});
+
+function select(id){sel=id;refreshGraph();renderPanel();if(location.hash!=='#'+id)history.replaceState(null,'','#'+id)}
+
+/* =========================================================
+   PANEL
+   ========================================================= */
+function chips(ids,label){return ids.length?`<div class="sec"><h3>${label}</h3><div class="links">${ids.map(i=>`<button class="lk ${mastered(i)?'m':''}" data-go="${i}">${mastered(i)?'✓ ':''}${byId[i].t}</button>`).join('')}</div></div>`:''}
+function renderPanel(){
+  const P=$('#panel');
+  if(!sel){
+    const nx=N.filter(n=>avail(n.id)&&!mastered(n.id)).slice(0,4);
+    P.innerHTML=`<div class="empty"><h2>Pick a concept</h2>
+    <p>Each node is a concept. Arrows point from a prerequisite to what it unlocks. Columns run left → right from basic to advanced.</p>
+    <p>For every node: read the concept, study the example and code, then pass the <b>challenge</b>. Wrong answers come with a <b>correction</b> and the prerequisite to review.</p>
+    <p>◆ marks nodes with an interactive lab.</p>
+    <div class="sec"><h3>Suggested next</h3><div class="links">${nx.map(n=>`<button class="lk" data-go="${n.id}">${n.t}</button>`).join('')||'<span>All available nodes mastered 🎉</span>'}</div></div></div>`;
+    bindGo(P);return;
+  }
+  const n=byId[sel],m=mastered(n.id),a=avail(n.id);
+  const missing=n.pre.filter(p=>!mastered(p));
+  P.innerHTML=`
+  <span class="lvl lvl${n.l}">${LN[n.l]}</span>
+  <div class="ptitle">${n.t}</div>
+  <div class="status ${m?'ok':''}">${m?'✓ Mastered':a?'Ready to learn':'Prerequisites not mastered yet'}</div>
+  ${!a&&!m?`<div class="warnbox" style="margin-top:10px">Recommended first: ${missing.map(p=>`<a href="#" data-go="${p}" style="color:#f0d48a">${byId[p].t}</a>`).join(', ')}. You can still explore this node.</div>`:''}
+  <div class="sec"><h3>Concept</h3><div class="card">${n.s}</div></div>
+  <div class="sec"><h3>Example</h3><div class="card ex">${n.ex}</div></div>
+  <div class="sec"><h3>Code sample</h3><div class="codewrap"><pre>${esc(n.code)}</pre><button class="copy">Copy</button></div></div>
+  ${n.lab?`<div class="sec"><button class="btnl" data-lab="${n.lab}">◆ Open interactive lab: ${LABS.find(l=>l.id===n.lab).short}</button></div>`:''}
+  <div class="sec"><h3>Challenge 1 · Multiple choice</h3><div class="card" id="mcqBox"></div></div>
+  ${n.f?`<div class="sec"><h3>Challenge 2 · Complete the code</h3><div class="card" id="fillBox"></div></div>`:''}
+  ${n.xb?`<div class="sec"><h3>Challenge ${n.f?3:2} · Explain it back</h3><div class="card" id="xBox"></div></div>`:''}
+  ${chips(n.pre,'Prerequisites')}${chips(n.next,'Unlocks')}`;
+  P.scrollTop=0;
+  P.querySelector('.copy').onclick=e=>{navigator.clipboard.writeText(n.code).then(()=>e.target.textContent='Copied',()=>e.target.textContent='Select & copy')};
+  const lb=P.querySelector('[data-lab]');if(lb)lb.onclick=()=>openLab(lb.dataset.lab);
+  mcq($('#mcqBox'),n.q,S.mcq[n.id],ok=>{
+    const k='q:'+n.id;S.tries[k]=(S.tries[k]||0)+1;
+    if(ok){if(!S.mcq[n.id]){S.mcq[n.id]=1;addXP(S.tries[k]===1?10:5);afterProgress(n.id)}}
+    else logMistake(n.id,'Multiple choice',n.q.o.find(o=>o[1])[0]);
+    save();
+  },n);
+  if(n.f)fillUI(n);
+  if(n.xb)explainUI(n);
+  bindGo(P);
+}
+function bindGo(root){root.querySelectorAll('[data-go]').forEach(b=>b.onclick=e=>{e.preventDefault();select(b.dataset.go)})}
+function afterProgress(id){
+  refreshGraph();
+  if(mastered(id)){toast(`✓ Mastered <b>${byId[id].t}</b>`);
+    const un=byId[id].next.filter(x=>avail(x)&&!mastered(x));
+    if(un.length)setTimeout(()=>toast(`🔓 Unlocked: <b>${un.map(x=>byId[x].t).join(', ')}</b>`),1400);
+    const s=$('.status');if(s){s.textContent='✓ Mastered';s.classList.add('ok')}
+  }else{const s=$('.status');if(s)s.textContent='Multiple choice ✓ — finish the next challenge to master';}
+}
+function mcq(box,Q,done,cb,node){
+  box.innerHTML=`<div class="q">${Q.q}</div>${Q.o.map((o,i)=>`<button class="opt" data-i="${i}">${o[0]}</button>`).join('')}<div class="fbz"></div>`;
+  const fbz=box.querySelector('.fbz');
+  const btns=[...box.querySelectorAll('.opt')];
+  const lock=()=>btns.forEach((b,i)=>{b.disabled=true;if(Q.o[i][1])b.classList.add('right')});
+  if(done){lock();fbz.innerHTML=`<div class="fb good"><b>✓ Already solved</b>${Q.o.find(o=>o[1])[2]}</div>`;return}
+  btns.forEach(b=>b.onclick=()=>{
+    const o=Q.o[+b.dataset.i];
+    if(o[1]){lock();fbz.innerHTML=`<div class="fb good"><b>✓ Correct</b>${o[2]}</div>`;cb(true)}
+    else{b.classList.add('wrong');b.disabled=true;
+      const rev=node&&node.pre.length?`<div style="margin-top:6px">Review: ${node.pre.map(p=>`<a href="#" data-go="${p}" style="color:#9ecbff">${byId[p].t}</a>`).join(', ')}</div>`:'';
+      fbz.innerHTML=`<div class="fb badf"><b>✗ Not quite — correction</b>${o[2]}${rev}<div style="margin-top:6px;color:var(--muted)">Try again.</div></div>`;bindGo(fbz);cb(false)}
+  });
+}
+function fillUI(n){
+  const box=$('#fillBox'),F=n.f,done=S.fill[n.id];
+  const parts=esc(F.code).split('___');
+  box.innerHTML=`<pre>${parts[0]}<span style="color:#f9a826">▢</span>${parts[1]||''}</pre>
+  <div class="row" style="margin-top:10px"><input class="fill" placeholder="fill the blank" ${done?'disabled':''}><button class="btnp">Check</button><button class="btns">Hint</button></div><div class="fbz"></div>`;
+  const inp=box.querySelector('input'),fbz=box.querySelector('.fbz');
+  if(done){inp.value=done;fbz.innerHTML=`<div class="fb good"><b>✓ Solved</b>${F.why}</div>`}
+  box.querySelector('.btns').onclick=()=>fbz.innerHTML=`<div class="fb tip"><b>Hint</b>${F.hint}</div>`;
+  const check=()=>{const v=inp.value.replace(/\s+/g,'');if(!v)return;
+    const ok=F.ans.some(a=>new RegExp('^('+a+')$','i').test(v));
+    if(ok){if(!S.fill[n.id]){S.fill[n.id]=v;addXP(10);save();afterProgress(n.id)}inp.disabled=true;fbz.innerHTML=`<div class="fb good"><b>✓ Correct</b>${F.why}</div>`}
+    else{logMistake(n.id,'Code blank',`Blank was <code>${esc(F.ans[0].replace(/\\/g,''))}</code> — ${F.why}`);
+      fbz.innerHTML=`<div class="fb badf"><b>✗ "${esc(v)}" doesn't fit</b>${F.hint}</div>`}};
+  box.querySelector('.btnp').onclick=check;inp.onkeydown=e=>{if(e.key==='Enter')check()};
+}
+function gradeExplain(X,txt){
+  const t=txt.toLowerCase();
+  const hits=X.keys.map(k=>new RegExp(k[1],'i').test(t));
+  const traps=X.traps.filter(tr=>new RegExp(tr[0],'i').test(t));
+  const need=Math.ceil(X.keys.length*2/3);const score=hits.filter(Boolean).length;
+  return{hits,traps,pass:score>=need&&t.length>=20,score,need};
+}
+function explainUI(n){
+  const box=$("#xBox"),X=n.xb,done=S.x[n.id];
+  box.innerHTML=`<div class="q">${X.p}</div><textarea placeholder="Write in your own words…">${done?esc(done):''}</textarea>
+  <div class="row" style="margin-top:8px"><button class="btnp">Grade my explanation</button><button class="btns">Show model answer</button></div><div class="fbz"></div>`;
+  const ta=box.querySelector('textarea'),fbz=box.querySelector('.fbz');
+  if(done)fbz.innerHTML=`<div class="fb good"><b>✓ Passed</b>Edit and re-grade any time.</div>`;
+  box.querySelector('.btns').onclick=()=>fbz.innerHTML+=`<div class="fb tip"><b>Model answer</b>${X.a}<div style="margin-top:6px;color:var(--muted)">Now rewrite it in your words — don't paste.</div></div>`;
+  box.querySelector('.btnp').onclick=()=>{
+    const r=gradeExplain(X,ta.value);
+    const list=X.keys.map((k,i)=>`<li>${r.hits[i]?'✅':'⬜'} ${r.hits[i]?'Covered':'Missing'}: ${k[0]}</li>`).join('');
+    const trap=r.traps.map(t=>`<div class="fb badf"><b>⚠ Misconception spotted — correction</b>${t[1]}</div>`).join('');
+    if(r.pass){if(!S.x[n.id]){S.x[n.id]=ta.value;addXP(15);save();afterProgress(n.id)}else{S.x[n.id]=ta.value;save()}
+      fbz.innerHTML=`<div class="fb good"><b>✓ Solid explanation (${r.score}/${X.keys.length} key ideas)</b><ul class="ck">${list}</ul></div>${trap}`}
+    else{logMistake(n.id,'Explanation',`Key ideas: ${X.keys.map(k=>k[0]).join('; ')}`);
+      fbz.innerHTML=`<div class="fb tip"><b>Almost — ${r.score}/${X.keys.length} key ideas (need ${r.need})</b><ul class="ck">${list}</ul>Add the missing idea(s) and re-grade.</div>${trap}`}
+  };
+}
+
+/* =========================================================
+   LABS — shared helpers
+   ========================================================= */
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function gauss(r){let u=0;while(!u)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r())}
+function cv(el){const r=window.devicePixelRatio||1;const w=el.clientWidth,h=el.clientHeight;el.width=w*r;el.height=h*r;const g=el.getContext('2d');g.setTransform(r,0,0,r,0,0);g.clearRect(0,0,w,h);return{g,w,h}}
+function solve(A,b){const n=b.length;const M=A.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(M[r][c])>Math.abs(M[p][c]))p=r;[M[c],M[p]]=[M[p],M[c]];
+    const d=M[c][c]||1e-12;for(let r=0;r<n;r++){if(r===c)continue;const f=M[r][c]/d;for(let k=c;k<=n;k++)M[r][k]-=f*M[c][k]}}
+  return M.map((r,i)=>r[n]/(r[i]||1e-12))}
+const ctl=(id,label,min,max,step,val,fmt='')=>`<div class="ctl"><label>${label}<b id="${id}V">${val}${fmt}</b></label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
+const stat=(id,l)=>`<div class="stat"><small>${l}</small><b id="${id}">–</b></div>`;
+function axes(g,w,h,p){g.strokeStyle='#2a3441';g.lineWidth=1;g.beginPath();g.moveTo(p,p/2);g.lineTo(p,h-p);g.lineTo(w-p/2,h-p);g.stroke()}
+function labQuiz(el,qs,key){
+  el.innerHTML=`<h3>Check yourself</h3>`+qs.map((_,i)=>`<div class="card" style="margin-bottom:10px" id="${key}q${i}"></div>`).join('');
+  qs.forEach((Q,i)=>mcq($('#'+key+'q'+i),Q,S.lab[key+i],ok=>{if(ok&&!S.lab[key+i]){S.lab[key+i]=1;addXP(8)}if(!ok)logMistake(null,'Lab: '+LABS.find(l=>l.id===key).short,Q.o.find(o=>o[1])[0]);save()}));
+}
+
+/* ---------------- LAB: memorized vs learned ---------------- */
+let memoTab='fit';
+const CF={deg:3,noise:.25,n:12,seed:7,nn:false};
+const KN={k:1,seed:3};
+const SH={sigma:.4,shift:.6};
+const GK={step:2500,wd:.5};
+function labMemo(M){
+  M.innerHTML=`<div class="labhead"><h2>Well-learned vs mechanically memorized</h2>
+  <p>Both kinds of model can score ~100% on training data. The difference shows up <b>off the training points</b>: on new data, under small perturbations, under distribution shift, and in the model's internal structure. Four lenses:</p></div>
+  <div class="subtabs">${[['fit','1 · Curve fitting'],['bound','2 · Decision boundaries'],['sharp','3 · Flat vs sharp minima'],['rep','4 · Internal representations']].map(t=>`<button data-t="${t[0]}" class="${memoTab===t[0]?'on':''}">${t[1]}</button>`).join('')}</div>
+  <div id="memoBody"></div><div class="labquiz" id="memoQuiz"></div>`;
+  M.querySelectorAll('.subtabs button').forEach(b=>b.onclick=()=>{memoTab=b.dataset.t;labMemo(M)});
+  ({fit:memoFit,bound:memoBound,sharp:memoSharp,rep:memoRep})[memoTab]($('#memoBody'));
+  labQuiz($('#memoQuiz'),[
+    {q:`A model gets 100% train, 61% test, and its predictions flip when you add tiny input noise. Most likely?`,o:[
+      [`It memorized the training set`,1,`Big generalization gap + brittleness to tiny perturbations = lookup-table behavior.`],
+      [`It learned the underlying rule well`,0,`A rule-learner would transfer to test data and be stable under tiny noise.`],
+      [`It's underfitting`,0,`Underfitting shows poor training accuracy too.`],
+      [`The test set is too clean`,0,`Clean test data is exactly what a learned model should handle.`]]},
+    {q:`Which is the strongest evidence that a model learned the rule rather than memorized?`,o:[
+      [`Training loss reached zero`,0,`Memorizers reach zero training loss too — it can't tell them apart.`],
+      [`It's a bigger model`,0,`Bigger models can memorize more easily.`],
+      [`It performs well on held-out and shifted inputs and is stable under small perturbations`,1,`Generalization is measured off the training points.`],
+      [`It trained for more epochs`,0,`Longer training can go either way.`]]}
+  ],'memo');
+}
+function memoFit(B){
+  B.innerHTML=`<div class="labgrid"><div><div class="plot"><canvas id="cfMain" style="height:340px"></canvas>
+  <div class="cap"><span><i class="sw" style="background:#5c6b7d"></i>true function</span><span><i class="sw" style="background:#4cc9f0;height:8px;width:8px;border-radius:50%"></i>train points</span><span><i class="sw" style="border:1.5px solid #8b98a8;height:8px;width:8px;border-radius:50%"></i>test points (never seen)</span><span><i class="sw" style="background:#c77dff"></i>polynomial model</span><span><i class="sw" style="background:#f85149"></i>lookup-table memorizer</span></div></div>
+  <div class="plot" style="margin-top:12px"><canvas id="cfErr" style="height:180px"></canvas><div class="cap"><span><i class="sw" style="background:#4cc9f0"></i>train error</span><span><i class="sw" style="background:#f9a826"></i>test error</span><span>x: polynomial degree · y: MSE (log scale)</span></div></div></div>
+  <div class="side">${ctl('cfDeg','Model complexity (degree)',1,15,1,CF.deg)}${ctl('cfNoise','Label noise',0,.6,.05,CF.noise)}${ctl('cfN','Training points',6,40,1,CF.n)}
+  <label style="font-size:13px;display:flex;gap:8px;align-items:flex-start"><input type="checkbox" id="cfNN" ${CF.nn?'checked':''}> Show pure memorizer (1-nearest-neighbor lookup)</label>
+  <button class="btns" id="cfRs">↻ Resample data</button>
+  <div class="stats">${stat('cfTr','Train MSE')}${stat('cfTe','Test MSE')}${stat('cfGap','Gap (test − train)')}${stat('cfNNe','Memorizer test MSE')}</div>
+  <div id="cfV" class="verdict"></div></div></div>
+  <div class="insight"><h4>How to read it</h4><ul>
+  <li><b>Well-learned</b>: the curve tracks the <i>true function</i> between points; test error ≈ the noise floor.</li>
+  <li><b>Memorized</b>: the curve passes through every training dot (train error → 0) but wiggles wildly between them; test error explodes. Push degree ≥ number of points to see it.</li>
+  <li>The red lookup table is the extreme memorizer: perfect on training data, staircase everywhere else.</li>
+  <li>Try: degree 12 with 12 points, then raise points to 40 — <b>more data tames memorization</b>.</li></ul></div>`;
+  const upd=()=>{CF.deg=+$('#cfDeg').value;CF.noise=+$('#cfNoise').value;CF.n=+$('#cfN').value;CF.nn=$('#cfNN').checked;
+    $('#cfDegV').textContent=CF.deg;$('#cfNoiseV').textContent=CF.noise;$('#cfNV').textContent=CF.n;drawFit()};
+  ['cfDeg','cfNoise','cfN'].forEach(i=>$('#'+i).oninput=upd);$('#cfNN').onchange=upd;$('#cfRs').onclick=()=>{CF.seed++;drawFit()};
+  drawFit();
+}
+const truef=x=>Math.sin(3*x)+.3*x;
+const cheb=(x,d)=>{const t=[1,x];for(let k=2;k<=d;k++)t.push(2*x*t[k-1]-t[k-2]);return t.slice(0,d+1)};
+function polyfit(P,d){const m=d+1,A=[...Array(m)].map(()=>Array(m).fill(0)),b=Array(m).fill(0);
+  P.forEach(([x,y])=>{const f=cheb(x,d);for(let i=0;i<m;i++){b[i]+=f[i]*y;for(let j=0;j<m;j++)A[i][j]+=f[i]*f[j]}});
+  for(let i=0;i<m;i++)A[i][i]+=1e-7;const c=solve(A,b);return x=>cheb(x,d).reduce((s,v,i)=>s+v*c[i],0)}
+const mse=(P,f)=>P.reduce((s,[x,y])=>s+(f(x)-y)**2,0)/P.length;
+function drawFit(){
+  const r=rng(CF.seed*977+CF.n);const gen=k=>[...Array(k)].map(()=>{const x=r()*2-1;return[x,truef(x)+CF.noise*gauss(r)]});
+  const tr=gen(CF.n).sort((a,b)=>a[0]-b[0]),te=gen(80);
+  const f=polyfit(tr,CF.deg);
+  const nn=x=>{let b=tr[0];for(const p of tr)if(Math.abs(p[0]-x)<Math.abs(b[0]-x))b=p;return b[1]};
+  const {g,w,h}=cv($('#cfMain'));const p=30;const X=x=>p+(x+1.05)/2.1*(w-p*1.5),Y=y=>h/2-y/2.6*(h/2-p);
+  axes(g,w,h,p);g.strokeStyle='#1f2833';g.beginPath();g.moveTo(p,Y(0));g.lineTo(w-p/2,Y(0));g.stroke();
+  const line=(fn,col,lw,dash)=>{g.save();g.beginPath();g.rect(p,0,w,h-p);g.clip();g.strokeStyle=col;g.lineWidth=lw;g.setLineDash(dash||[]);g.beginPath();for(let i=0;i<=400;i++){const x=-1.05+2.1*i/400;const y=Math.max(-5,Math.min(5,fn(x)));i?g.lineTo(X(x),Y(y)):g.moveTo(X(x),Y(y))}g.stroke();g.restore()};
+  line(truef,'#5c6b7d',2,[6,5]);
+  if(CF.nn)line(nn,'#f85149',1.6);
+  line(f,'#c77dff',2.6);
+  te.forEach(([x,y])=>{g.strokeStyle='#8b98a8';g.lineWidth=1.2;g.beginPath();g.arc(X(x),Y(y),3,0,7);g.stroke()});
+  tr.forEach(([x,y])=>{g.fillStyle='#4cc9f0';g.beginPath();g.arc(X(x),Y(y),4.5,0,7);g.fill()});
+  const a=mse(tr,f),b=mse(te,f),c=mse(te,nn),base=CF.noise**2;
+  $('#cfTr').textContent=a.toFixed(3);$('#cfTe').textContent=b>99?'>99':b.toFixed(3);$('#cfGap').textContent=(b-a)>99?'>99':(b-a).toFixed(3);$('#cfNNe').textContent=c.toFixed(3);
+  const V=$('#cfV');
+  if(a>base+.06){V.className='verdict v-warn';V.innerHTML=`<b>Underfitting (high bias)</b>Too simple to capture the curve — train and test are both poor. Correction: raise the degree.`}
+  else if(b-a>base+.08||b>3*Math.max(a,base)+.05){V.className='verdict v-bad';V.innerHTML=`<b>Memorizing (high variance)</b>Train error ≈ ${a<.005?'0':a.toFixed(3)} but test error is ${b>99?'huge':b.toFixed(2)}. The curve threads the dots, not the pattern. Correction: lower degree, add data, or regularize.`}
+  else{V.className='verdict v-good';V.innerHTML=`<b>Generalizing</b>Test error is close to the noise floor (≈${base.toFixed(3)}). The model learned the shape, not the points.`}
+  const e=cv($('#cfErr'));const G=e.g,W=e.w,H=e.h,q=28;axes(G,W,H,q);
+  const ds=[...Array(15)].map((_,i)=>i+1).map(d=>{const fd=polyfit(tr,d);return[d,mse(tr,fd),mse(te,fd)]});
+  const XX=d=>q+(d-1)/14*(W-q*1.6),YY=v=>{const l=Math.log10(Math.max(v,1e-4));return q/2+(1-(l+4)/6)*(H-q*1.5)};
+  G.fillStyle='#8b98a8';G.font='10px Inter';[1e-4,1e-2,1].forEach(v=>G.fillText(v>=1?'1':v===1e-2?'.01':'1e-4',2,YY(v)+3));[1,5,10,15].forEach(d=>G.fillText(d,XX(d)-3,H-q+14));
+  G.strokeStyle='#c77dff55';G.setLineDash([3,3]);G.beginPath();G.moveTo(XX(CF.deg),q/2);G.lineTo(XX(CF.deg),H-q);G.stroke();G.setLineDash([]);
+  [[1,'#4cc9f0'],[2,'#f9a826']].forEach(([k,col])=>{G.strokeStyle=col;G.lineWidth=2;G.beginPath();ds.forEach((d,i)=>{const y=Math.min(YY(d[k]),H-q),yy=Math.max(y,4);i?G.lineTo(XX(d[0]),yy):G.moveTo(XX(d[0]),yy)});G.stroke()});
+}
+function memoBound(B){
+  B.innerHTML=`<div class="labgrid"><div class="plot"><canvas id="kbC" style="height:420px"></canvas><div class="cap"><span>Background = model's prediction. Dots = training data (10% have <b>flipped labels</b> — noise). Faint rings = clean test points.</span></div></div>
+  <div class="side">${ctl('kbK','k (neighbors that vote)',1,41,2,KN.k)}<button class="btns" id="kbRs">↻ Resample</button>
+  <div class="stats">${stat('kbTr','Train accuracy')}${stat('kbTe','Test accuracy')}${stat('kbFl','Flip rate under tiny noise')}${stat('kbIs','Boundary roughness')}</div>
+  <div id="kbV" class="verdict"></div></div></div>
+  <div class="insight"><h4>What to notice</h4><ul><li><b>k = 1</b> is a perfect memorizer: 100% train accuracy, with little islands drawn around every mislabeled point. Those islands are memorized noise.</li>
+  <li>Raise k: the boundary smooths into the true two-moon shape, train accuracy drops slightly, <b>test accuracy and stability rise</b>.</li>
+  <li>The flip rate is a practical memorization detector: nudge inputs slightly and count changed predictions.</li></ul></div>`;
+  $('#kbK').oninput=e=>{KN.k=+e.target.value;$('#kbKV').textContent=KN.k;drawBound()};$('#kbRs').onclick=()=>{KN.seed++;drawBound()};drawBound();
+}
+function moons(n,r,flip){return[...Array(n)].map((_,i)=>{const c=i%2,t=r()*Math.PI;let x=c?1-Math.cos(t):Math.cos(t),y=c?.5-Math.sin(t):Math.sin(t);x+=gauss(r)*.17;y+=gauss(r)*.17;return[x,y,(flip&&r()<flip)?1-c:c]})}
+function drawBound(){
+  const r=rng(KN.seed*131);const tr=moons(200,r,.1),te=moons(400,r,0);const k=KN.k;
+  const knn=(x,y)=>{const d=tr.map(p=>[(p[0]-x)**2+(p[1]-y)**2,p[2]]);d.sort((a,b)=>a[0]-b[0]);let s=0;for(let i=0;i<k;i++)s+=d[i][1];return s/k};
+  const {g,w,h}=cv($('#kbC'));const x0=-1.6,x1=2.6,y0=-1.1,y1=1.6;const X=x=>(x-x0)/(x1-x0)*w,Y=y=>h-(y-y0)/(y1-y0)*h;
+  const GX=Math.round(w/6),GY=Math.round(h/6);let edgesCnt=0;const grid=[];
+  for(let j=0;j<GY;j++){grid.push([]);for(let i=0;i<GX;i++){const x=x0+(i+.5)/GX*(x1-x0),y=y1-(j+.5)/GY*(y1-y0);const pr=knn(x,y);grid[j].push(pr>.5);
+    g.fillStyle=pr>.5?`rgba(249,168,38,${.12+.33*(pr-.5)*2})`:`rgba(76,201,240,${.12+.33*(.5-pr)*2})`;{const ax=Math.round(i*w/GX),ay=Math.round(j*h/GY);g.fillRect(ax,ay,Math.round((i+1)*w/GX)-ax,Math.round((j+1)*h/GY)-ay)}}}
+  for(let j=0;j<GY;j++)for(let i=1;i<GX;i++)if(grid[j][i]!==grid[j][i-1])edgesCnt++;
+  te.forEach(p=>{g.strokeStyle=p[2]?'rgba(249,168,38,.35)':'rgba(76,201,240,.35)';g.beginPath();g.arc(X(p[0]),Y(p[1]),2.5,0,7);g.stroke()});
+  tr.forEach(p=>{g.fillStyle=p[2]?'#f9a826':'#4cc9f0';g.strokeStyle='#0d1117';g.beginPath();g.arc(X(p[0]),Y(p[1]),4,0,7);g.fill();g.stroke()});
+  const acc=(P)=>P.filter(p=>(knn(p[0],p[1])>.5?1:0)===p[2]).length/P.length;
+  let fl=0,tot=0;const r2=rng(99);te.slice(0,250).forEach(p=>{const b=knn(p[0],p[1])>.5;for(let t=0;t<3;t++){tot++;if((knn(p[0]+gauss(r2)*.07,p[1]+gauss(r2)*.07)>.5)!==b)fl++}});
+  const a=acc(tr),b=acc(te),f=fl/tot;
+  $('#kbTr').textContent=(a*100).toFixed(0)+'%';$('#kbTe').textContent=(b*100).toFixed(1)+'%';$('#kbFl').textContent=(f*100).toFixed(1)+'%';$('#kbIs').textContent=edgesCnt;
+  const V=$('#kbV');
+  if(k<=3){V.className='verdict v-bad';V.innerHTML=`<b>Memorizer</b>Fits every noisy label (train ${(a*100).toFixed(0)}%). Islands around flipped points = memorized noise. Correction: raise k (more averaging = regularization).`}
+  else if(k>=35){V.className='verdict v-warn';V.innerHTML=`<b>Getting over-smoothed</b>Averaging so many neighbors starts to blur the moons' tips — bias creeping in.`}
+  else{V.className='verdict v-good';V.innerHTML=`<b>Well-learned</b>Smooth boundary following the true shape; stable under small nudges.`}
+}
+function memoSharp(B){
+  B.innerHTML=`<div class="labgrid"><div class="plot"><canvas id="shC" style="height:360px"></canvas><div class="cap"><span><i class="sw" style="background:#c77dff"></i>training loss L(w)</span><span><i class="sw" style="background:#f9a826"></i>test loss (shifted landscape)</span><span>Shaded bands = weight perturbation ±σ</span></div></div>
+  <div class="side">${ctl('shS','Weight perturbation σ',0,1.2,.05,SH.sigma)}${ctl('shD','Train→test shift',0,1.5,.05,SH.shift)}
+  <div class="stats">${stat('shA','Sharp: perturbed loss')}${stat('shB','Flat: perturbed loss')}${stat('shC2','Sharp: test loss')}${stat('shD2','Flat: test loss')}</div>
+  <div class="verdict v-warn"><b>Honest caveat</b>Flatness ↔ generalization is a useful heuristic, not a law: rescaling weights can change sharpness without changing the function (Dinh et al., 2017). Treat it as a lens, not proof.</div></div></div>
+  <div class="insight"><h4>Why this picture</h4><ul><li>Both minima reach the <b>same training loss</b> — training metrics can't tell them apart.</li>
+  <li>The <b>sharp</b> minimum is a narrow, precise fit (memorization-like). A tiny weight change or a slightly different test distribution sends loss soaring.</li>
+  <li>The <b>flat</b> minimum tolerates perturbation and shift — closer to "learned the general shape". Methods like SAM and weight decay nudge training toward flatter regions.</li></ul></div>`;
+  ['shS','shD'].forEach(i=>$('#'+i).oninput=()=>{SH.sigma=+$('#shS').value;SH.shift=+$('#shD').value;$('#shSV').textContent=SH.sigma;$('#shDV').textContent=SH.shift;drawSharp()});drawSharp();
+}
+function drawSharp(){
+  const ws=-1.6,wf=1.6;const L=w=>{const s=.1+9*(w-ws)**2,f=.1+.32*(w-wf)**2,m=Math.min(s,f);return Math.min(3.2,m-.15*Math.log(Math.exp(-(s-m)/.15)+Math.exp(-(f-m)/.15)))};const Lt=w=>L(w-SH.shift*.5);
+  const {g,w,h}=cv($('#shC'));const p=30;const X=v=>p+(v+4)/8*(w-p*1.5),Y=v=>h-p-v/3.3*(h-p*1.6);axes(g,w,h,p);
+  [[ws,'#f85149'],[wf,'#3fb950']].forEach(([c,col])=>{g.fillStyle=col+'22';g.fillRect(X(c-SH.sigma),p/2,X(c+SH.sigma)-X(c-SH.sigma),h-p*1.5)});
+  const line=(fn,col,lw,d)=>{g.strokeStyle=col;g.lineWidth=lw;g.setLineDash(d||[]);g.beginPath();for(let i=0;i<=500;i++){const v=-4+8*i/500;i?g.lineTo(X(v),Y(fn(v))):g.moveTo(X(v),Y(fn(v)))}g.stroke();g.setLineDash([])};
+  line(Lt,'#f9a826',1.8,[6,4]);line(L,'#c77dff',2.6);
+  g.fillStyle='#e6edf3';g.font='600 12px Inter';g.fillText('sharp minimum',X(ws)-42,Y(.1)+22);g.fillText('flat minimum',X(wf)-36,Y(.1)+22);
+  [[ws,'#f85149'],[wf,'#3fb950']].forEach(([c,col])=>{g.fillStyle=col;g.beginPath();g.arc(X(c),Y(L(c)),5,0,7);g.fill();g.beginPath();g.arc(X(c),Y(Lt(c)),4,0,7);g.strokeStyle='#f9a826';g.lineWidth=2;g.stroke()});
+  const pert=c=>{let s=0;for(let i=0;i<=40;i++)s+=L(c-SH.sigma+2*SH.sigma*i/40);return s/41};
+  $('#shA').textContent=pert(ws).toFixed(2);$('#shB').textContent=pert(wf).toFixed(2);$('#shC2').textContent=Lt(ws).toFixed(2);$('#shD2').textContent=Lt(wf).toFixed(2);
+}
+function memoRep(B){
+  B.innerHTML=`<div class="labgrid"><div><div class="plot"><canvas id="gkA" style="height:220px"></canvas><div class="cap"><span><i class="sw" style="background:#4cc9f0"></i>train accuracy</span><span><i class="sw" style="background:#f9a826"></i>validation accuracy</span><span>Schematic of a grokking run on (a + b) mod 12 — illustrative, not real data</span></div></div>
+  <div class="plot" style="margin-top:12px"><canvas id="gkB" style="height:300px"></canvas><div class="cap"><span>Learned embeddings of the numbers 0–11. Lines connect n → n+1.</span></div></div></div>
+  <div class="side">${ctl('gkS','Training step',0,10000,50,GK.step)}${ctl('gkW','Weight decay',0,1,.1,GK.wd)}
+  <button class="btns" id="gkP">▶ Play training</button>
+  <div class="stats">${stat('gkTr','Train acc')}${stat('gkVa','Val acc')}</div><div id="gkV" class="verdict"></div></div></div>
+  <div class="insight"><h4>What a well-learned model looks like inside</h4><ul>
+  <li><b>Memorized phase</b>: embeddings are scattered — each fact stored independently, like a hash table. Train 100%, validation near chance.</li>
+  <li><b>Generalized phase</b>: the numbers arrange on a circle, and "+1" becomes the <i>same rotation</i> every time — so lines n→n+1 form a regular star. The model encodes the <b>rule</b>, so unseen sums work.</li>
+  <li>Set weight decay to 0: training still hits 100%, but structure never forms — memorization is a stable solution without pressure toward simplicity.</li>
+  <li>Inspired by work on grokking (Power et al., 2022) and its mechanistic analysis (Nanda et al., 2023), which found Fourier/circular features in models trained on modular addition.</li></ul></div>`;
+  const upd=()=>{GK.step=+$('#gkS').value;GK.wd=+$('#gkW').value;$('#gkSV').textContent=GK.step;$('#gkWV').textContent=GK.wd;drawRep()};
+  ['gkS','gkW'].forEach(i=>$('#'+i).oninput=upd);
+  $('#gkP').onclick=()=>{if(GK.timer){clearInterval(GK.timer);GK.timer=null;$('#gkP').textContent='▶ Play training';return}
+    if(GK.step>=10000)GK.step=0;$('#gkP').textContent='❚❚ Pause';GK.timer=setInterval(()=>{const el=$('#gkS');if(!el){clearInterval(GK.timer);GK.timer=null;return}GK.step=Math.min(10000,GK.step+80);el.value=GK.step;upd();if(GK.step>=10000){clearInterval(GK.timer);GK.timer=null;$('#gkP').textContent='▶ Play training'}},40)};
+  drawRep();
+}
+const sig=x=>1/(1+Math.exp(-x));
+const gkTrain=t=>.08+.92*sig((t-700)/130);
+const gkVal=(t,wd)=>wd<=0?.08+.07*sig((t-3000)/900):.08+.9*sig((t-(1800+5200*(1-wd)))/320);
+function drawRep(){
+  const {g,w,h}=cv($('#gkA'));const p=28;axes(g,w,h,p);const X=t=>p+t/10000*(w-p*1.5),Y=a=>h-p-a*(h-p*1.6);
+  g.fillStyle='#8b98a8';g.font='10px Inter';g.fillText('100%',0,Y(1)+3);g.fillText('0',14,Y(0)+3);g.fillText('steps →',w-50,h-8);
+  [[gkTrain,'#4cc9f0'],[t=>gkVal(t,GK.wd),'#f9a826']].forEach(([fn,col])=>{g.strokeStyle=col;g.lineWidth=2.2;g.beginPath();for(let i=0;i<=300;i++){const t=i/300*1e4;i?g.lineTo(X(t),Y(fn(t))):g.moveTo(X(t),Y(fn(t)))}g.stroke()});
+  g.strokeStyle='#c77dff';g.setLineDash([4,4]);g.beginPath();g.moveTo(X(GK.step),p/2);g.lineTo(X(GK.step),h-p);g.stroke();g.setLineDash([]);
+  const tr=gkTrain(GK.step),va=gkVal(GK.step,GK.wd),prog=Math.max(0,Math.min(1,(va-.1)/.86));
+  $('#gkTr').textContent=(tr*100).toFixed(0)+'%';$('#gkVa').textContent=(va*100).toFixed(0)+'%';
+  const e=cv($('#gkB'));const G=e.g,W=e.w,H=e.h,cx=W/2,cy=H/2,rad=Math.min(W,H)*.36;const r=rng(42);
+  const init=[...Array(12)].map(()=>[(r()*2-1)*rad*1.2,(r()*2-1)*rad*1.0]);
+  const mem=Math.min(1,tr);
+  const pts=[...Array(12)].map((_,k)=>{const a=2*Math.PI*((k*5)%12)/12-Math.PI/2;const c=[Math.cos(a)*rad,Math.sin(a)*rad];const s=[init[k][0]*(.35+.65*mem),init[k][1]*(.35+.65*mem)];return[cx+s[0]+(c[0]-s[0])*prog,cy+s[1]+(c[1]-s[1])*prog]});
+  G.strokeStyle=`rgba(199,125,255,${.15+.6*prog})`;G.lineWidth=1.4;G.beginPath();pts.forEach((p,k)=>{const q2=pts[(k+1)%12];G.moveTo(p[0],p[1]);G.lineTo(q2[0],q2[1])});G.stroke();
+  if(prog>.5){G.strokeStyle=`rgba(139,152,168,${(prog-.5)})`;G.setLineDash([3,4]);G.beginPath();G.arc(cx,cy,rad,0,7);G.stroke();G.setLineDash([])}
+  pts.forEach((p,k)=>{G.fillStyle='#1c2430';G.strokeStyle='#c77dff';G.lineWidth=2;G.beginPath();G.arc(p[0],p[1],13,0,7);G.fill();G.stroke();G.fillStyle='#e6edf3';G.font='600 12px JetBrains Mono';G.textAlign='center';G.fillText(k,p[0],p[1]+4)});G.textAlign='left';
+  const V=$('#gkV');
+  if(tr<.5){V.className='verdict v-warn';V.innerHTML='<b>Early training</b>Neither memorized nor learned yet.'}
+  else if(va<.4){V.className='verdict v-bad';V.innerHTML=`<b>Memorized</b>Train ${(tr*100).toFixed(0)}%, validation ${(va*100).toFixed(0)}%. Embeddings have no shared structure.${GK.wd<=0?' With zero weight decay this phase may never end.':''}`}
+  else if(va<.9){V.className='verdict v-warn';V.innerHTML='<b>Grokking in progress</b>Structure is forming; validation is climbing.'}
+  else{V.className='verdict v-good';V.innerHTML='<b>Generalized</b>Numbers sit on a circle and +1 is a fixed rotation — the model encodes the rule itself.'}
+}
+
+/* ---------------- LAB: gradient descent ---------------- */
+const GDS={lr:-1,mom:0,cond:8,sx:-4.2,sy:3};
+function labGD(M){
+  M.innerHTML=`<div class="labhead"><h2>Gradient descent: learning-rate intuition</h2><p>Loss surface f(x, y) = ½(κ·x² + y²). κ is the condition number: how much steeper one direction is. Click the plot to choose a start point.</p></div>
+  <div class="labgrid"><div><div class="plot"><canvas id="gdC" style="height:380px;cursor:crosshair"></canvas><div class="cap"><span>Ellipses = loss contours · dots = 60 optimizer steps</span></div></div>
+  <div class="plot" style="margin-top:12px"><canvas id="gdL" style="height:150px"></canvas><div class="cap"><span>Loss per step (log scale)</span></div></div></div>
+  <div class="side">${ctl('gdLr','Learning rate η (log)',-3,.4,.01,GDS.lr)}${ctl('gdM','Momentum β',0,.95,.05,GDS.mom)}${ctl('gdK','Condition number κ',1,30,1,GDS.cond)}
+  <div class="stats">${stat('gdE','η · λmax')}${stat('gdF','Final loss')}</div><div id="gdV" class="verdict"></div></div></div>
+  <div class="insight"><h4>Rules of thumb</h4><ul><li>For plain GD on a quadratic, it's stable only if <b>η · λmax &lt; 2</b> (λmax = the steepest curvature, here max(κ, 1)). Cross it → divergence.</li>
+  <li>High κ (a long, narrow valley) forces a small η for the steep direction, which crawls along the shallow one. That's why <b>momentum</b> and adaptive methods (Adam) help.</li>
+  <li>Try: κ=20, η just below the limit → zig-zag. Add momentum 0.8 → faster progress along the valley.</li></ul></div>
+  <div class="labquiz" id="gdQ"></div>`;
+  const upd=()=>{GDS.lr=+$('#gdLr').value;GDS.mom=+$('#gdM').value;GDS.cond=+$('#gdK').value;$('#gdLrV').textContent=(10**GDS.lr).toFixed(4);$('#gdMV').textContent=GDS.mom;$('#gdKV').textContent=GDS.cond;drawGD()};
+  ['gdLr','gdM','gdK'].forEach(i=>$('#'+i).oninput=upd);
+  $('#gdC').onclick=e=>{const r=e.target.getBoundingClientRect();GDS.sx=((e.clientX-r.left)/r.width*2-1)*5;GDS.sy=-((e.clientY-r.top)/r.height*2-1)*4;drawGD()};
+  upd();
+  labQuiz($('#gdQ'),[{q:`κ = 10 and η = 0.24, plain GD (no momentum). What happens?`,o:[
+    [`Smooth convergence`,0,`η·λmax = 2.4 > 2 — the steep direction overshoots more each step.`],
+    [`Divergence along the steep (x) direction`,1,`Each step multiplies x by (1 − 2.4) = −1.4: growing oscillation.`],
+    [`Slow convergence only along y`,0,`y is fine (factor 0.76), but x blows up first.`],
+    [`Nothing — learning rate doesn't affect stability`,0,`It's the main stability knob.`]]}],'gd');
+}
+function drawGD(){
+  const lr=10**GDS.lr,b=GDS.mom,k=GDS.cond;const f=(x,y)=>.5*(k*x*x+y*y);
+  const {g,w,h}=cv($('#gdC'));const X=x=>(x/5+1)/2*w,Y=y=>(1-y/4)/2*h;
+  [.1,.5,1.5,4,9,18,35,70,140].forEach((c,i)=>{g.strokeStyle=`rgba(88,166,255,${.5-i*.045})`;g.lineWidth=1;g.beginPath();g.ellipse(X(0),Y(0),Math.sqrt(2*c/k)/5*w/2,Math.sqrt(2*c)/4*h/2,0,0,7);g.stroke()});
+  let x=GDS.sx,y=GDS.sy,vx=0,vy=0;const path=[[x,y]],loss=[f(x,y)];
+  for(let i=0;i<60;i++){vx=b*vx-lr*k*x;vy=b*vy-lr*y;x+=vx;y+=vy;path.push([x,y]);loss.push(f(x,y));if(!isFinite(loss[loss.length-1])||loss[loss.length-1]>1e8)break}
+  g.strokeStyle='#f9a826';g.lineWidth=1.6;g.beginPath();path.forEach((p,i)=>{const px=Math.max(-50,Math.min(w+50,X(p[0]))),py=Math.max(-50,Math.min(h+50,Y(p[1])));i?g.lineTo(px,py):g.moveTo(px,py)});g.stroke();
+  path.forEach((p,i)=>{g.fillStyle=i===0?'#fff':`hsl(${35+i*2},90%,${60-i*.3}%)`;g.beginPath();g.arc(X(p[0]),Y(p[1]),i===0?5:3,0,7);g.fill()});
+  g.fillStyle='#3fb950';g.beginPath();g.arc(X(0),Y(0),5,0,7);g.fill();
+  const e=cv($('#gdL'));const G=e.g,W=e.w,H=e.h,q=24;axes(G,W,H,q);
+  const YY=v=>{const l=Math.log10(Math.max(1e-6,Math.min(v,1e6)));return q/2+(1-(l+6)/12)*(H-q*1.5)};
+  G.strokeStyle='#c77dff';G.lineWidth=2;G.beginPath();loss.forEach((v,i)=>{const xx=q+i/60*(W-q*1.5);i?G.lineTo(xx,YY(v)):G.moveTo(xx,YY(v))});G.stroke();
+  const eff=lr*Math.max(k,1),fin=loss[loss.length-1];
+  $('#gdE').textContent=eff.toFixed(2);$('#gdF').textContent=!isFinite(fin)||fin>1e6?'∞':fin<1e-4?fin.toExponential(1):fin.toFixed(3);
+  const V=$('#gdV');
+  if(!isFinite(fin)||fin>loss[0]){V.className='verdict v-bad';V.innerHTML=`<b>Diverging</b>${b>0?'With momentum the stable range shrinks/changes; ':''}η·λmax = ${eff.toFixed(2)}. Correction: lower η below ≈ ${(2/Math.max(k,1)).toFixed(3)}${b>0?' or reduce momentum':''}.`}
+  else if(fin<1e-3){V.className='verdict v-good';V.innerHTML=`<b>Converged</b>Reached the minimum in ≤ 60 steps.`}
+  else if(eff<.05){V.className='verdict v-warn';V.innerHTML=`<b>Too slow</b>Tiny steps. Correction: raise η (or add momentum).`}
+  else{V.className='verdict v-warn';V.innerHTML=`<b>Progressing, not done</b>Likely zig-zagging in the narrow direction or crawling in the wide one. Try momentum.`}
+}
+
+/* ---------------- LAB: attention ---------------- */
+const AT={q:7,end:'tired',temp:1};
+function labAttn(M){
+  M.innerHTML=`<div class="labhead"><h2>Attention lens: what does "it" look at?</h2><p>Click a token to make it the <b>query</b>. Bars show how much it attends to every token. Swap the last word and watch "it" change its mind. (Hand-set weights for teaching — a real head is learned and messier.)</p></div>
+  <div class="row" style="margin-bottom:12px"><span style="color:var(--muted);font-size:13px">Last word:</span><button class="btns" id="atT">tired</button><button class="btns" id="atW">wide</button></div>
+  <div id="atToks" style="margin-bottom:14px"></div>
+  <div class="labgrid"><div><div class="plot"><div class="bars" id="atBars"></div></div>
+  <div class="plot" style="margin-top:12px"><canvas id="atH" style="height:420px"></canvas><div class="cap"><span>Full attention matrix: row = query, column = key. Brighter = more weight. Each row sums to 1.</span></div></div></div>
+  <div class="side">${ctl('atTe','Softmax temperature',.3,3,.1,AT.temp)}<div class="verdict v-warn"><b>Correction to a common misconception</b>Attention weights are <i>not</i> parameters. The learned parameters are W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub>; the weights are recomputed for every input — that's why one word changes everything.</div>
+  <div class="verdict v-warn"><b>Second caution</b>One head's attention pattern isn't a full explanation of the model's decision. Other heads, layers and MLPs also matter.</div></div></div>
+  <div class="labquiz" id="atQ"></div>`;
+  $('#atT').onclick=()=>{AT.end='tired';drawAttn()};$('#atW').onclick=()=>{AT.end='wide';drawAttn()};
+  $('#atTe').oninput=e=>{AT.temp=+e.target.value;$('#atTeV').textContent=AT.temp;drawAttn()};
+  drawAttn();
+  labQuiz($('#atQ'),[{q:`Changing "tired" → "wide" shifts "it" from "animal" to "street". What does that show?`,o:[
+    [`The attention weights are fixed parameters learned in training`,0,`The projections are fixed; the weights are recomputed per input from Q·K.`],
+    [`Attention weights depend on the whole context, computed fresh per input`,1,`Same parameters, different input → different weights.`],
+    [`The model reads right to left`,0,`Attention isn't directional by itself; it's content-based.`],
+    [`Temperature changed`,0,`Temperature only sharpens or flattens the same preferences.`]]},
+   {q:`Lowering softmax temperature toward 0 makes attention…`,o:[
+    [`More uniform`,0,`Higher temperature flattens; lower sharpens.`],
+    [`Sharper — closer to one-hot on the top key`,1,`Dividing scores by a small T amplifies differences.`],
+    [`Unchanged`,0,`Try the slider.`],
+    [`Negative`,0,`Softmax outputs are always positive.`]]}],'attn');
+}
+function attnRows(){
+  const T=['The','animal',"didn't",'cross','the','street','because','it','was','too',AT.end];const n=T.length;
+  const S0=[...Array(n)].map((_,i)=>[...Array(n)].map((_,j)=>j===i?2:Math.abs(i-j)===1?1.2:0));
+  const set=(i,j,v)=>S0[i][j]=v;
+  set(0,1,2.4);set(4,5,2.4);set(2,3,2);set(3,1,1.6);set(3,5,1.8);set(6,3,1.2);set(9,10,2.2);set(8,7,1.6);
+  if(AT.end==='tired'){set(7,1,3.6);set(7,5,.6);set(10,1,2.4);set(10,7,2.2)}else{set(7,5,3.6);set(7,1,.6);set(10,5,2.4);set(10,7,2.2)}
+  const W=S0.map(r=>{const e=r.map(v=>Math.exp(v/AT.temp));const s=e.reduce((a,b)=>a+b,0);return e.map(v=>v/s)});
+  return{T,W};
+}
+function drawAttn(){
+  const {T,W}=attnRows();
+  [['#atT','tired'],['#atW','wide']].forEach(([s,v])=>{const b=$(s);b.className=AT.end===v?'btnp':'btns'});
+  $('#atToks').innerHTML=T.map((t,i)=>`<button class="tok ${i===AT.q?'on':''}" data-i="${i}">${t}</button>`).join('');
+  $('#atToks').querySelectorAll('.tok').forEach(b=>b.onclick=()=>{AT.q=+b.dataset.i;drawAttn()});
+  const row=W[AT.q],mx=Math.max(...row);
+  $('#atBars').innerHTML=`<div style="font-size:13px;margin-bottom:8px;color:var(--muted)">Query: <b style="color:var(--text)">"${T[AT.q]}"</b> attends to…</div>`+row.map((v,j)=>`<div class="bar"><span>${T[j]}</span><div style="width:${v/mx*100}%;opacity:${.35+.65*v/mx}"></div><span>${(v*100).toFixed(0)}%</span></div>`).join('');
+  const {g,w,h}=cv($('#atH'));const n=T.length,lp=70,tp=62,cs=Math.min((w-lp-10)/n,(h-tp-6)/n);
+  g.font='11px JetBrains Mono';g.fillStyle='#8b98a8';
+  T.forEach((t,i)=>{g.textAlign='right';g.fillStyle=i===AT.q?'#c77dff':'#8b98a8';g.fillText(t,lp-6,tp+i*cs+cs/2+4);g.save();g.translate(lp+i*cs+cs/2+4,tp-6);g.rotate(-Math.PI/3);g.textAlign='left';g.fillStyle='#8b98a8';g.fillText(t,0,0);g.restore()});
+  W.forEach((r,i)=>r.forEach((v,j)=>{g.fillStyle=`rgba(199,125,255,${Math.min(1,v*1.6)})`;g.fillRect(lp+j*cs,tp+i*cs,cs-1.5,cs-1.5)}));
+  g.strokeStyle='#f9a826';g.lineWidth=2;g.strokeRect(lp,tp+AT.q*cs,n*cs-1.5,cs-1.5);g.textAlign='left';
+}
+
+/* =========================================================
+   LAB SHELL + PROGRESS
+   ========================================================= */
+let curLab=null;
+const ti=()=>{const d=new Date();return Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5)%LABS.length};
+function openLab(id){curLab=id;show('labView');
+  $('#labNav').innerHTML=`<h3>Interactive labs</h3>`+LABS.map((l,i)=>`<button class="labItem ${l.id===id?'on':''}" data-id="${l.id}">${l.short}${i===ti()?'<span class="badge">today</span>':''}<small>${l.t}</small></button>`).join('')+
+  `<h3 style="margin-top:18px">Linked concept</h3><button class="lk" id="labNode">${byId[LABS.find(l=>l.id===id).node].t} →</button>`;
+  $('#labNav').querySelectorAll('.labItem').forEach(b=>b.onclick=()=>openLab(b.dataset.id));
+  $('#labNode').onclick=()=>{show('graphView');select(LABS.find(l=>l.id===id).node)};
+  if(GK.timer){clearInterval(GK.timer);GK.timer=null}
+  const M=$('#labMain');({memo:labMemo,gd:labGD,attn:labAttn})[id](M);M.scrollTop=0;
+}
+function renderProgress(){
+  const P=$('#progView');
+  const lv=[1,2,3].map(l=>{const a=N.filter(n=>n.l===l),m=a.filter(n=>mastered(n.id)).length;return`<div class="card"><span class="lvl lvl${l}">${LN[l]}</span><div style="font-size:22px;font-weight:700;margin-top:6px">${m} / ${a.length}</div><div class="meter"><div style="width:${m/a.length*100}%;background:${LC[l]}"></div></div></div>`}).join('');
+  const nx=N.filter(n=>avail(n.id)&&!mastered(n.id));
+  const weak={};S.mist.forEach(m=>{if(m.id)weak[m.id]=(weak[m.id]||0)+1});
+  const weakL=Object.entries(weak).filter(([id])=>!mastered(id)).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  P.innerHTML=`<h2 style="margin:0 0 14px">Progress &amp; corrections</h2><div class="pgrid">${lv}</div>
+  <div class="pgrid" style="margin-top:16px">
+   <div class="card"><h3 style="margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Next up</h3>${nx.length?nx.slice(0,6).map(n=>`<div style="margin:6px 0"><button class="lk" data-go="${n.id}">${n.t}</button> <span class="lvl lvl${n.l}">${LN[n.l]}</span></div>`).join(''):'Everything available is mastered 🎉'}</div>
+   <div class="card"><h3 style="margin:0 0 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Weak spots → review</h3>${weakL.length?weakL.map(([id,c])=>`<div style="margin:6px 0"><button class="lk" data-go="${id}">${byId[id].t}</button> <span style="color:var(--muted);font-size:12px">${c} miss${c>1?'es':''}${byId[id].pre.length?` · revisit ${byId[id].pre.map(p=>byId[p].t).join(', ')}`:''}</span></div>`).join(''):'<span style="color:var(--muted)">No open weak spots.</span>'}</div>
+  </div>
+  <div class="card" style="margin-top:16px;max-width:1100px"><h3 style="margin:0 0 6px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Correction log</h3>
+  ${S.mist.length?S.mist.slice(0,15).map(m=>`<div class="mist"><span style="color:var(--bad)">✗</span><div><b>${m.id?byId[m.id].t:''}</b> <span style="color:var(--muted)">· ${m.kind}</span><div>Correct idea: ${m.text}</div></div></div>`).join(''):'<span style="color:var(--muted)">Mistakes and their corrections show up here.</span>'}</div>
+  <div class="row" style="margin-top:16px"><button class="btns" id="rst">Reset all progress</button><span id="rstc" style="display:none">Sure? <button class="btns" id="rsty" style="border-color:var(--bad)">Yes, reset</button> <button class="btns" id="rstn">Cancel</button></span></div>`;
+  P.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{show('graphView');select(b.dataset.go)});
+  $('#rst').onclick=()=>$('#rstc').style.display='inline';$('#rstn').onclick=()=>$('#rstc').style.display='none';
+  $('#rsty').onclick=()=>{S=blank();save();refreshGraph();renderProgress();toast('Progress reset')};
+}
+function show(v){document.querySelectorAll('.view').forEach(e=>e.classList.toggle('on',e.id===v));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.v===v));
+  if(v==='progView')renderProgress();if(v==='graphView'){requestAnimationFrame(()=>{if(!fit._done){fit();fit._done=1}})}}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{if(t.dataset.v==='labView')openLab(curLab||LABS[ti()].id);else show(t.dataset.v)});
+let rz;window.addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if($('#labView').classList.contains('on')&&curLab)openLab(curLab)},200)});
+
+/* init */
+const TL=LABS[ti()];
+$('#todayBox').innerHTML=`📌 Topic of the day: <b>${TL.short}</b><button id="todayGo">Open lab</button>`;
+$('#todayGo').onclick=()=>openLab(TL.id);
+place();refreshGraph();
+const h0=location.hash.slice(1);
+if(byId[h0])select(h0);else renderPanel();
+requestAnimationFrame(()=>{fit();fit._done=1});
+</script>
+</body>
+</html>
