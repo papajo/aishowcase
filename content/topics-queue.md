@@ -13,7 +13,7 @@ a named tool, a comparison, or a concrete technique — not generic themes.
 - [x] Claude Code vs Cursor: which AI coding assistant earns its $20 a month
 - [x] How I built a private RAG assistant that answers only from my own documents
 - [x] BM25 plus embeddings: why hybrid search beats pure vector search for technical docs
-- [ ] Chunking strategy for RAG: 500 tokens with 50 overlap, and when to break the rule
+- [x] Chunking strategy for RAG: 500 tokens with 50 overlap, and when to break the rule
 - [ ] LangChain vs LlamaIndex: which framework to reach for first
 - [ ] CrewAI multi-agent workflows: where role-based agents actually help
 - [ ] Groq vs standard APIs: what sub-second LLM inference changes in practice
