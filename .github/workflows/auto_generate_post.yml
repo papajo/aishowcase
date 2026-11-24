@@ -9,11 +9,15 @@ on:
       publish:
         description: "Publish immediately (true) or save as draft (false)"
         required: false
-        default: "true"
+        default: "false"
         type: choice
         options:
           - "true"
           - "false"
+      source_url:
+        description: "Optional news/source link to ground the article (recommended for news posts)"
+        required: false
+        default: ""
 permissions:
   contents: write
 jobs:
@@ -40,7 +44,15 @@ jobs:
           NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           NVIDIA_BASE_URL: ${{ secrets.NVIDIA_BASE_URL }}
           NVIDIA_MODEL: ${{ secrets.NVIDIA_MODEL }}
-        run: python scripts/auto_generate_post.py --topic "${{ github.event.inputs.topic }}" --publish ${{ github.event.inputs.publish }} --force true
+          POST_TOPIC: ${{ github.event.inputs.topic }}
+          POST_PUBLISH: ${{ github.event.inputs.publish }}
+          POST_URL: ${{ github.event.inputs.source_url }}
+        run: |
+          if [ -n "$POST_URL" ]; then
+            python scripts/auto_generate_post.py --topic "$POST_TOPIC" --publish "$POST_PUBLISH" --url "$POST_URL" --force true
+          else
+            python scripts/auto_generate_post.py --topic "$POST_TOPIC" --publish "$POST_PUBLISH" --force true
+          fi
         continue-on-error: true
       - name: Check for changes
         id: git-check
