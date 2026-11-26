@@ -91,7 +91,7 @@ def fetch_url_context(url: str, max_chars: int = 3000) -> str:
         return ""
 
 
-def generate_with_llm(topic: str, model: str, extra_context: str = "") -> str:
+def _generate_once(topic: str, model: str, extra_context: str = "") -> str:
     api_key = os.environ.get("NVIDIA_API_KEY")
     is_local = "localhost" in BASE_URL or "127.0.0.1" in BASE_URL
 
@@ -201,6 +201,41 @@ def generate_with_llm(topic: str, model: str, extra_context: str = "") -> str:
                 continue
             raise RuntimeError(f"LLM API timed out after {max_retries} attempts: {e}")
     raise RuntimeError("Max retries exceeded")
+
+
+# Models to try, in order, if the configured model is retired (HTTP 410) or
+# missing (HTTP 404). NVIDIA retires catalog models without warning — the
+# Nov 25 2026 run failed because the configured model hit end of life on
+# Nov 24. Keep this list to models listed at integrate.api.nvidia.com/v1/models.
+FALLBACK_MODELS = [
+    "mistralai/mistral-large-4-1t-a52b",
+    "nvidia/nemotron-3-ultra-550b-a55b",
+    "moonshotai/kimi-k3.1-pro",
+]
+WORKING_MODEL = None
+
+
+def generate_with_llm(topic: str, model: str, extra_context: str = "") -> str:
+    """Try the configured model, then fall back if it is retired or missing."""
+    global WORKING_MODEL
+    candidates = [model] + [m for m in FALLBACK_MODELS if m != model]
+    last_err = None
+    for i, m in enumerate(candidates):
+        try:
+            body = _generate_once(topic, m, extra_context=extra_context)
+            WORKING_MODEL = m
+            if i > 0:
+                print(f"NOTE: configured model unavailable; post written with fallback model {m}. "
+                      f"Update the NVIDIA_MODEL secret to a live model.")
+            return body
+        except RuntimeError as e:
+            msg = str(e)
+            if "HTTP 410" in msg or "HTTP 404" in msg:
+                print(f"Model unavailable ({msg[:160]}); trying next model...")
+                last_err = e
+                continue
+            raise
+    raise RuntimeError(f"No available model among {len(candidates)} tried: {last_err}")
 
 
 def _url_alive(url: str) -> bool:
@@ -390,7 +425,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.tags:
         tags = [t.strip() for t in args.tags.split(",") if t.strip()]
     else:
-        tags = generate_tags_with_llm(args.topic, args.model)
+        tags = generate_tags_with_llm(args.topic, WORKING_MODEL or args.model)
         print(f"Generated tags: {', '.join(tags)}")
 
     now = _dt.datetime.now(_dt.timezone.utc)
