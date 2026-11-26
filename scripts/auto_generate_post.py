@@ -400,20 +400,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"{'Published' if published else 'Draft'} saved: {path}")
     post_to_admin(args.topic, markdown, published)
 
-    # Auto-generate hero image for the new post
+    # Hero images: fill in ANY published post that has no hero yet (auto or manual).
+    # Covers the new post if it was published, plus drafts published later.
+    # Retries live inside generate_heroes.py; failures never block the post.
     try:
-        slug = os.path.basename(path).replace(".md", "")
-        auto_dir = os.path.join(PROJECT_ROOT, "public", "heroes", "auto")
-        os.makedirs(auto_dir, exist_ok=True)
-        auto_path = os.path.join(auto_dir, f"{slug}.webp")
-        if not os.path.exists(auto_path):
-            print(f"\n🎨 Generating hero image via scripts/generate_heroes.py --slug {slug} ...")
-            import subprocess
-            subprocess.run(
-                [sys.executable, os.path.join(PROJECT_ROOT, "scripts", "generate_heroes.py"),
-                 "--slug", slug, "--provider", "pollinations"],
-                timeout=120, check=False,
-            )
+        print("\n🎨 Back-filling missing hero images via scripts/generate_heroes.py --missing ...")
+        import subprocess
+        subprocess.run(
+            [sys.executable, os.path.join(PROJECT_ROOT, "scripts", "generate_heroes.py"),
+             "--missing", "--provider", "pollinations"],
+            timeout=900, check=False,
+        )
     except Exception as e:
         print(f"⚠️  Hero image generation skipped: {e}")
 

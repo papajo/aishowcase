@@ -47,72 +47,72 @@ HEIGHT = int(os.environ.get("HEROES_HEIGHT", 600))
 TOPIC_STYLES: dict[str, str] = {
     "ai-agent": (
         "A cybersecurity command center from a first-person perspective, "
-        "holographic AI agent interfaces floating in mid-air, neon blue and red data streams, "
+        "holographic AI agent interfaces floating in mid-air, copper and terracotta data streams, "
         "dark background with glowing tech grids, cinematic cyberpunk aesthetic"
     ),
     "ai-autonomous": (
         "An abstract digital network of autonomous AI nodes connecting across a dark cyberspace, "
-        "glowing neural pathways with red and blue energy pulses, futuristic HUD overlays, "
+        "glowing neural pathways with copper and amber energy pulses, futuristic HUD overlays, "
         "misty atmospheric depth, cinematic cyber-thriller lighting"
     ),
     "ai-security": (
         "A high-tech cybersecurity operations center, glowing firewall barriers, "
-        "digital lock symbols made of binary code, blue and orange neon accents, "
+        "digital lock symbols made of binary code, copper and burnt-orange accents, "
         "dark atmospheric room with holographic threat maps, cinematic lighting"
     ),
     "multimodal": (
         "A surreal digital collage merging text, images, and sound waves into a unified stream, "
-        "translucent floating elements in purple and teal gradients, "
+        "translucent floating elements in copper and cream gradients, "
         "futuristic holographic display showing interconnected media types, ethereal glow"
     ),
     "llm-model": (
         "A towering neural network architecture visualized as a crystalline structure, "
-        "layers of glowing neurons in amber and indigo, light rays passing through transparent "
+        "layers of glowing neurons in amber and copper, light rays passing through transparent "
         "computational layers, sci-fi data center aesthetic, volumetric lighting"
     ),
     "deepseek": (
         "A deep reasoning engine visualized as a mechanical brain with illuminated circuitry, "
-        "golden and deep blue light trails forming logical pathways, "
+        "golden and terracotta light trails forming logical pathways, "
         "industrial sci-fi aesthetic with glowing computational nodes, dramatic rim lighting"
     ),
     "rag-retrieval": (
         "A dynamic visualization of data being retrieved from a vast digital library, "
-        "glowing document chunks flying through neon-lit cyberspace towards a central node, "
-        "green and cyan data streams, futuristic database architecture"
+        "glowing document chunks drifting through warm dark space towards a central node, "
+        "copper and cream data streams, futuristic database architecture"
     ),
     "vector-db": (
         "Abstract vector space visualization with glowing high-dimensional data points, "
         "clusters of colored vectors floating in dark space, connected by thin luminous threads, "
-        "data science minimalist aesthetic, purple and teal color scheme"
+        "data science minimalist aesthetic, copper and cream color scheme"
     ),
     "software-dev": (
         "A developer's workspace transformed into a holographic command center, "
-        "floating code panels and IDE windows in translucent blue glass, "
-        "keyboard with neon backlight, dark ambient lighting, cyberpunk tech aesthetic"
+        "floating code panels and IDE windows in translucent amber glass, "
+        "keyboard with warm copper backlight, dark ambient lighting, clean tech aesthetic"
     ),
     "time-latency": (
         "A temporal distortion visualization with glowing clock faces and speed lines, "
-        "digital timecode overlays fading into motion blur, orange and electric blue neon, "
+        "digital timecode overlays fading into motion blur, burnt orange and soft gold glow, "
         "cinematic time-lapse photography aesthetic"
     ),
     "edge-iot": (
         "An industrial edge computing network with connected IoT sensor nodes "
         "glowing through atmospheric haze, digital overlays on infrastructure, "
-        "neon blue and amber accents against dark industrial backdrop, cyberpunk aesthetic"
+        "copper and amber accents against dark industrial backdrop"
     ),
     "data-analytics": (
         "A futuristic data analytics dashboard rendered as a holographic display, "
         "glowing bar charts and line graphs floating in dark space, "
-        "golden amber data points with dark navy background, clean minimalist sci-fi"
+        "golden amber data points on a warm near-black background, clean minimalist sci-fi"
     ),
     "prompt-engineering": (
         "Abstract visualization of text prompts transforming into visual outputs, "
-        "flowing language particles morphing into images, bioluminescent gradient, "
-        "dreamy deep learning aesthetic, magenta to cyan color transition"
+        "flowing language particles morphing into images, warm glowing gradient, "
+        "dreamy deep learning aesthetic, terracotta to cream color transition"
     ),
     "default": (
         "A sleek futuristic control room with holographic displays showing abstract AI data, "
-        "minimalist sci-fi aesthetic, cool blue and purple lighting, "
+        "minimalist sci-fi aesthetic, warm copper and amber lighting, "
         "clean geometric shapes with subtle glow effects, atmospheric depth"
     ),
 }
@@ -151,17 +151,18 @@ def build_prompt(title: str, tags: list[str], excerpt: str) -> str:
 
     # Enforce consistent visual identity across all topics
     VISUAL_IDENTITY = (
-        "Consistent dark cyberpunk aesthetic: deep black/charcoal background with "
-        "electric blue, neon purple, and warm amber accent glows. "
-        "Atmospheric haze, volumetric light rays, subtle grid/tech patterns. "
-        "Cinematic depth of field, moody and premium feel."
+        "Match the aishowcase site theme: clean isometric flat illustration on a warm "
+        "near-black / espresso background, with copper, terracotta, burnt-orange, cream "
+        "and soft gold glows and thin glowing copper circuit lines. "
+        "Warm palette only: no blue, no cyan, no teal, no purple, no neon. "
+        "Moody, premium, minimal."
     )
 
     return (
         f"Hero banner for an AI/tech blog post titled '{title}'. {base_style} "
         f"{VISUAL_IDENTITY} "
         f"Clean composition, wide aspect ratio ({WIDTH}x{HEIGHT}), "
-        f"no text, no watermark, no logos, no UI elements, photorealistic digital art."
+        f"no text, no watermark, no logos, no UI elements, polished digital illustration."
     )
 
 
@@ -214,18 +215,33 @@ def get_all_posts() -> list[dict]:
 # ── Image generation providers ───────────────────────────────────────────────
 
 def _generate_pollinations(prompt: str, slug: str) -> bytes | None:
-    """Generate image using Pollinations.ai (free, no API key)."""
+    """Generate image using Pollinations.ai (free, no API key).
+
+    Retries a few times on busy/timeout errors (e.g. HTTP 503), since the
+    free service is flaky. Stops at once on 402 (rate limit / payment required).
+    """
     url = f"https://image.pollinations.ai/prompt/{urllib.parse.quote(prompt)}?width={WIDTH}&height={HEIGHT}&nologo=true&model=flux"
-    print(f"  📡 Pollinations.ai: generating...", end="", flush=True)
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": "generate-heroes/1.0"})
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = resp.read()
-        print(f" ✅ ({len(data)} bytes)")
-        return data
-    except Exception as e:
-        print(f" ❌ {e}")
-        return None
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        print(f"  📡 Pollinations.ai: generating (try {attempt}/{attempts})...", end="", flush=True)
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "generate-heroes/1.0"})
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                data = resp.read()
+            if len(data) < 10_000:
+                raise ValueError(f"response too small ({len(data)} bytes)")
+            print(f" ✅ ({len(data)} bytes)")
+            return data
+        except Exception as e:
+            print(f" ❌ {e}")
+            if getattr(e, "code", None) == 402:
+                print("  ⛔ Pollinations rate limit (402) — not retrying this run.")
+                return None
+            if attempt < attempts:
+                wait = 15 * attempt
+                print(f"  ⏳ waiting {wait}s before retrying...")
+                time.sleep(wait)
+    return None
 
 
 def _generate_dalle3(prompt: str, slug: str) -> bytes | None:
