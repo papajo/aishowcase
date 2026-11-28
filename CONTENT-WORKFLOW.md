@@ -169,37 +169,41 @@ python3 scripts/auto_generate_post.py --topic "Your Topic" --publish true --forc
 
 ---
 
-## Pipeline 3: Drop Folder (Manual Posts)
+## Pipeline 3: Drop Folder (Manual Posts) — the default since 2026-11-27
 
-**Best for**: Writing posts manually (or with external tools), then auto-publishing.
+**Best for**: Posts written by hand (Muse drafts, joshi reviews, or written in
+Claude/ChatGPT). The Mon/Wed/Fri LLM generator is turned off.
 
 ### How It Works
 
-1. Drop `.md` files into `content/incoming/`
-2. Optionally drop a hero image (`.webp`, `.png`, `.jpg`) with the same base name
-3. Run the publish script or push to `main` — GitHub Action handles the rest
+1. Pick the next unchecked topic in `content/topics-queue.md` and write the post.
+2. Drop the `.md` file into `content/incoming/` (name it
+   `YYYYMMDD-HHMMSS-short-slug.md`). Optionally add a hero image with the same
+   base name (warm theme only — see docs/hero-images.md).
+3. Push to `main`. The `publish-incoming.yml` workflow:
+   - validates frontmatter (title, date, tags required) and rejects duplicate titles
+     (checks both posts and drafts)
+   - runs `scripts/check_post_links.py` (no stub markers, ≥150 words, every link alive)
+   - moves the post to **`content/drafts/`** with `published: false` — **not live**
+   - moves any hero image to `public/heroes/manual/`
+   - commits the move (including removing the file from `content/incoming/`) and pushes
+   - leaves any rejected post in `content/incoming/` and marks the run failed
+4. Review the draft. To publish it, set `published: true` and run
+   `python3 scripts/publish_drafts.py` (moves it to `content/posts/`), commit, push.
+   Vercel deploys on push.
+
+To skip review on purpose, use "Run workflow" on Publish Incoming Posts with
+`publish = true`, or run the script locally with `--publish`.
 
 ### Local Usage
 
 ```bash
-# See what's waiting
-python3 scripts/publish_incoming.py --list
-
-# Validate without moving (dry run)
-python3 scripts/publish_incoming.py --dry-run
-
-# Publish all incoming posts
-python3 scripts/publish_incoming.py
+python3 scripts/publish_incoming.py --list                  # what's waiting
+python3 scripts/publish_incoming.py --dry-run               # validate only
+python3 scripts/publish_incoming.py --check-links           # incoming -> drafts
+python3 scripts/publish_incoming.py --check-links --publish # incoming -> posts (live)
+python3 scripts/publish_incoming.py --git                   # also commit + push (old behaviour)
 ```
-
-### GitHub Action
-
-The `.github/workflows/publish-incoming.yml` workflow triggers on any push to `content/incoming/**` on `main`. It runs `publish_incoming.py` which:
-- Validates frontmatter (title, date, tags required)
-- Checks for duplicate titles
-- Moves posts to `content/posts/`
-- Moves hero images to `public/heroes/manual/`
-- Commits and pushes → Vercel auto-deploys
 
 ### Required Frontmatter
 
@@ -207,7 +211,7 @@ The `.github/workflows/publish-incoming.yml` workflow triggers on any push to `c
 ---
 title: "Your Post Title"
 date: "2026-07-24T10:00:00+00:00"
-published: true
+published: false   # forced to false on the way to drafts
 tags: "Tag1, Tag2, Tag3"
 hero: optional-hero-filename.webp   # optional
 ---

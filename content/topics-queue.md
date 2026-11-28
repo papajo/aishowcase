@@ -1,8 +1,9 @@
 # Topics queue for scheduled posting
 
-How it works: the scheduled workflow (`scheduled-post.yml`) takes the first
-unchecked line below, generates a post about it, and marks it `[x]` only
-after the post passes its checks and is committed. Add new topics at the
+How it works (since 2026-11-27): this is the to-write list for hand-written
+posts. The scheduled generator is turned off. Take the first unchecked line,
+write the post, drop it into `content/incoming/`, and mark the line `[x]`
+once the draft is in. (The old `scheduled-post.yml` used this same list.) Add new topics at the
 bottom. If the queue runs out, the scheduled run fails loudly instead of
 inventing a topic — add more lines, don't let it guess.
 

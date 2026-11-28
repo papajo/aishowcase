@@ -1,6 +1,13 @@
 # Auto-Posting Plan — fresh articles on a schedule, minimal human input
 
-Status: built on branch `auto-posting-schedule`, **not enabled yet**.
+> **Update 2026-11-27 — schedule turned OFF.** The LLM API path failed twice in
+> one week (HTTP 410 when the configured model hit end of life on Nov 25; read
+> timeouts on Nov 27). Posts are now written by hand (Muse drafts, joshi
+> reviews) and fed in through `content/incoming/` → `content/drafts/`. See
+> "Pipeline 3: Drop Folder" in CONTENT-WORKFLOW.md. `content/topics-queue.md`
+> stays the to-write list. The plan below is kept for history.
+
+Status (historical): built on branch `auto-posting-schedule`, **not enabled yet**.
 It needs two picks from joshi before the schedule goes live (see Decisions).
 
 ## Goal

@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """
-Watch content/incoming/ for new posts and hero images, validate, and publish.
+Watch content/incoming/ for new posts and hero images, validate, and move them on.
+
+DEFAULT (since 2026-11-27): incoming posts land in content/drafts/ with
+`published: false`, so every post is reviewed before it goes live. Publish a
+reviewed draft by setting `published: true` and running scripts/publish_drafts.py
+(or ask Muse / use the Posts space "Request publish"). Pass --publish to send
+posts straight to content/posts/ (live) instead.
+
+Git: the script no longer commits or pushes by itself — the GitHub workflow
+(publish-incoming.yml) does that. Pass --git for the old local auto-commit.
 
 Drop files into content/incoming/:
   - .md files with frontmatter (title, date, published, tags required)
@@ -9,7 +18,9 @@ Drop files into content/incoming/:
   - .webp/.png/.jpg hero images (named same as the post or referenced in frontmatter)
 
 Usage:
-  python3 scripts/publish_incoming.py              # Process all incoming files
+  python3 scripts/publish_incoming.py              # Incoming -> drafts (review first)
+  python3 scripts/publish_incoming.py --publish    # Incoming -> posts (live)
+  python3 scripts/publish_incoming.py --check-links  # Also run check_post_links.py first
   python3 scripts/publish_incoming.py --dry-run    # Validate without moving
   python3 scripts/publish_incoming.py --list       # Show what's waiting
 
@@ -28,6 +39,7 @@ import argparse, datetime as _dt, os, re, shutil, subprocess, sys
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INCOMING_DIR = os.path.join(PROJECT_ROOT, "content", "incoming")
 POSTS_DIR = os.path.join(PROJECT_ROOT, "content", "posts")
+DRAFTS_DIR = os.path.join(PROJECT_ROOT, "content", "drafts")
 HEROES_AUTO_DIR = os.path.join(PROJECT_ROOT, "public", "heroes", "auto")
 HEROES_MANUAL_DIR = os.path.join(PROJECT_ROOT, "public", "heroes", "manual")
 
@@ -37,11 +49,12 @@ CONVERTIBLE_EXTS = {".html", ".htm", ".pdf"}
 POST_EXTS = {".md"} | CONVERTIBLE_EXTS
 
 
-def parse_frontmatter(content: str) -> tuple[dict[str, str], str]:
-    """Parse YAML frontmatter from markdown content."""
+def parse_frontmatter(content: str) -> tuple[dict[str, str], str, str]:
+    """Parse YAML frontmatter from markdown content -> (meta, raw_frontmatter, body)."""
+    content = content.replace("\r\n", "\n")
     match = re.match(r"^---\n(.*?)\n---\n(.*)", content, re.DOTALL)
     if not match:
-        return {}, content
+        return {}, "", content
 
     meta: dict[str, str] = {}
     for line in match.group(1).split("\n"):
@@ -268,14 +281,45 @@ def find_hero_for_post(post_filename: str, meta: dict[str, str]) -> str | None:
     return None
 
 
+def set_published(content: str, published: bool) -> str:
+    """Force the `published:` frontmatter field to the given value."""
+    meta, raw, body = parse_frontmatter(content)
+    value = "true" if published else "false"
+    if re.search(r"^published:.*$", raw, re.M):
+        raw = re.sub(r"^published:.*$", f"published: {value}", raw, count=1, flags=re.M)
+    else:
+        raw = raw + f"\npublished: {value}"
+    return f"---\n{raw}\n---\n{body}"
+
+
+def run_link_check(content: str, label: str) -> bool:
+    """Run check_post_links.py on the post content. True = passed."""
+    import tempfile
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import check_post_links
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as tmp:
+        tmp.write(content)
+        tmp_path = tmp.name
+    try:
+        print(f"  🔗 Link check: {label}")
+        return check_post_links.main([tmp_path]) == 0
+    finally:
+        os.remove(tmp_path)
+
+
 def check_duplicate_title(title: str) -> bool:
-    """Check if a title already exists in published posts."""
-    if not os.path.isdir(POSTS_DIR):
-        return False
-    for fn in os.listdir(POSTS_DIR):
+    """Check if a title already exists in published posts or drafts."""
+    for folder in (POSTS_DIR, DRAFTS_DIR):
+        if os.path.isdir(folder) and _title_in(folder, title):
+            return True
+    return False
+
+
+def _title_in(folder: str, title: str) -> bool:
+    for fn in os.listdir(folder):
         if not fn.endswith(".md"):
             continue
-        with open(os.path.join(POSTS_DIR, fn), "r", encoding="utf-8") as f:
+        with open(os.path.join(folder, fn), "r", encoding="utf-8") as f:
             for line in f:
                 if line.startswith("title:"):
                     existing = line.split(":", 1)[1].strip().strip('"').strip("'")
@@ -285,7 +329,8 @@ def check_duplicate_title(title: str) -> bool:
     return False
 
 
-def process_post(filepath: str, dry_run: bool = False) -> bool:
+def process_post(filepath: str, dry_run: bool = False, publish: bool = False,
+                 check_links: bool = False) -> bool:
     """Process a single incoming post. Returns True if successful."""
     filename = os.path.basename(filepath)
     ext = os.path.splitext(filename)[1].lower()
@@ -324,12 +369,20 @@ def process_post(filepath: str, dry_run: bool = False) -> bool:
         print(f"  ⚠️  Skipping {filename}: duplicate title '{title}'")
         return False
 
+    content = set_published(content, publish)
+    dest_dir = POSTS_DIR if publish else DRAFTS_DIR
+    dest_label = "content/posts" if publish else "content/drafts"
+
+    if check_links and not run_link_check(content, filename):
+        print(f"  ❌ {filename}: link/stub check failed — left in content/incoming/")
+        return False
+
     # Find hero image (use original filename for matching)
     original_filename = os.path.basename(filepath)
     hero_path = find_hero_for_post(original_filename, meta)
 
     if dry_run:
-        print(f"  ✅ {filename} → content/posts/{filename}")
+        print(f"  ✅ {filename} → {dest_label}/{filename}")
         print(f"     Title: {title}")
         print(f"     Tags: {meta.get('tags', '(none)')}")
         if hero_path:
@@ -340,17 +393,16 @@ def process_post(filepath: str, dry_run: bool = False) -> bool:
             print(f"     Hero: (none found — will use auto-generated)")
         return True
 
-    # Write converted file or move original
-    os.makedirs(POSTS_DIR, exist_ok=True)
-    dest = os.path.join(POSTS_DIR, filename)
-    if ext in CONVERTIBLE_EXTS:
-        with open(dest, "w", encoding="utf-8") as f:
-            f.write(content)
-        os.remove(filepath)
-        print(f"  📝 Converted & published: {filename}")
-    else:
-        shutil.move(filepath, dest)
-        print(f"  📝 Published: {filename}")
+    # Write the (possibly converted) post with the forced published flag
+    os.makedirs(dest_dir, exist_ok=True)
+    dest = os.path.join(dest_dir, filename)
+    if os.path.exists(dest):
+        print(f"  ⚠️  Skipping {filename}: {dest_label}/{filename} already exists")
+        return False
+    with open(dest, "w", encoding="utf-8") as f:
+        f.write(content)
+    os.remove(filepath)
+    print(f"  📝 {'Published' if publish else 'Saved as draft'}: {dest_label}/{filename}")
 
     # Move hero image
     if hero_path:
@@ -410,6 +462,12 @@ def main():
     parser = argparse.ArgumentParser(description="Publish incoming posts from content/incoming/")
     parser.add_argument("--dry-run", action="store_true", help="Validate without moving files")
     parser.add_argument("--list", action="store_true", help="List files waiting in incoming/")
+    parser.add_argument("--publish", action="store_true",
+                        help="Send posts straight to content/posts/ (live). Default: content/drafts/")
+    parser.add_argument("--check-links", action="store_true",
+                        help="Run check_post_links.py on each post before moving it")
+    parser.add_argument("--git", action="store_true",
+                        help="Old behaviour: git add/commit/push to main after moving")
     args = parser.parse_args()
 
     if args.list:
@@ -441,25 +499,27 @@ def main():
     failed = 0
 
     for filepath in post_files:
-        if process_post(filepath, dry_run=args.dry_run):
+        if process_post(filepath, dry_run=args.dry_run, publish=args.publish,
+                        check_links=args.check_links):
             success += 1
         else:
             failed += 1
 
     print(f"\n{'='*50}")
-    print(f"  Done: {success} published, {failed} failed")
+    print(f"  Done: {success} {'published' if args.publish else 'saved as draft'}, {failed} failed")
     print(f"{'='*50}\n")
 
-    if not args.dry_run and success > 0:
-        # Auto-commit and push
+    if args.git and not args.dry_run and success > 0:
+        # Optional local auto-commit and push (the GitHub workflow does its own)
         try:
-            subprocess.run(["git", "add", "content/posts/", "public/heroes/manual/"],
+            subprocess.run(["git", "add", "-A", "content/incoming/", "content/drafts/",
+                            "content/posts/", "public/heroes/manual/"],
                          cwd=PROJECT_ROOT, check=True, capture_output=True)
             subprocess.run(["git", "commit", "-m", f"chore: publish {success} post(s) from incoming/"],
                          cwd=PROJECT_ROOT, check=True, capture_output=True)
             subprocess.run(["git", "push", "origin", "main"],
                          cwd=PROJECT_ROOT, check=True, capture_output=True)
-            print("  🚀 Committed and pushed to main — Vercel will auto-deploy.")
+            print("  🚀 Committed and pushed to main.")
         except subprocess.CalledProcessError as e:
             print(f"  ⚠️  Git error: {e}")
 

@@ -1,5 +1,9 @@
 # Research → Blog Post Pipeline
 
+> Note 2026-11-27: the default way to add posts is now by hand through
+> `content/incoming/` (lands in drafts for review) — see CONTENT-WORKFLOW.md,
+> Pipeline 3. This Odysseus pipeline is optional and local-only.
+
 Wires Odysseus Deep Research into the AI Showcase blog. One command researches, writes, publishes, and deploys.
 
 ## Prerequisites
