@@ -1,13 +1,36 @@
 name: Publish Incoming Posts
+
+# Manual-post path (since 2026-11-27): posts are written by hand, then dropped
+# into content/incoming/. This workflow validates each one, runs the link /
+# stub check, and moves it to content/drafts/ with `published: false`, so
+# joshi reviews every post before it goes live. To publish a reviewed draft,
+# set `published: true` and run scripts/publish_drafts.py (or ask Muse).
+#
+# Use the manual "Run workflow" button with publish=true only to skip review.
+
 on:
   push:
     paths:
       - 'content/incoming/**'
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Send straight to content/posts (live) instead of drafts"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 permissions:
   contents: write
+
+concurrency:
+  group: publish-incoming
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -22,20 +45,41 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.12"
+          cache: "pip"
 
-      - name: Check for incoming posts
-        id: check
+      - name: Install dependencies
         run: |
-          if ls content/incoming/*.md 1>/dev/null 2>&1; then
-            echo "has_posts=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_posts=false" >> $GITHUB_OUTPUT
+          python -m pip install --upgrade pip
+          if [ -f scripts/requirements.txt ]; then
+            pip install -r scripts/requirements.txt
           fi
 
-      - name: Publish posts
-        if: steps.check.outputs.has_posts == 'true'
-        run: python3 scripts/publish_incoming.py
+      - name: Process incoming posts (validate + link check)
+        id: process
+        env:
+          PUBLISH: ${{ github.event.inputs.publish || 'false' }}
+        run: |
+          FLAGS="--check-links"
+          if [ "$PUBLISH" = "true" ]; then FLAGS="$FLAGS --publish"; fi
+          set +e
+          python3 scripts/publish_incoming.py $FLAGS
+          echo "rc=$?" >> "$GITHUB_OUTPUT"
 
-      - name: No incoming posts
-        if: steps.check.outputs.has_posts == 'false'
-        run: echo "No incoming posts to publish"
+      - name: Commit and push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A content/incoming content/drafts content/posts public/heroes/manual
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "chore: move incoming post(s) to drafts [automated]"
+          git push origin HEAD
+
+      - name: Fail if any post was rejected
+        if: steps.process.outputs.rc != '0'
+        run: |
+          echo "One or more incoming posts failed validation or the link check."
+          echo "They were left in content/incoming/ — see the log above."
+          exit 1
