@@ -29,9 +29,13 @@ name: Scheduled Post
 #   NVIDIA_BASE_URL — optional, defaults to https://integrate.api.nvidia.com/v1
 
 on:
-  schedule:
-    # Mon / Wed / Fri, 14:00 UTC = 09:00 EST (10:00 EDT)
-    - cron: "0 14 * * 1,3,5"
+  # Schedule turned OFF 2026-11-27: the LLM API kept failing (HTTP 410 on
+  # Nov 25, read timeouts on Nov 27). Posts are now written by hand and fed
+  # in through content/incoming/ (see publish-incoming.yml). The manual
+  # "Run workflow" button below still works if you ever want a generated draft.
+  # schedule:
+  #   # Mon / Wed / Fri, 14:00 UTC = 09:00 EST (10:00 EDT)
+  #   - cron: "0 14 * * 1,3,5"
   workflow_dispatch:
     inputs:
       publish:
