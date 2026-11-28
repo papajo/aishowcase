@@ -15,7 +15,7 @@ a named tool, a comparison, or a concrete technique — not generic themes.
 - [x] How I built a private RAG assistant that answers only from my own documents
 - [x] BM25 plus embeddings: why hybrid search beats pure vector search for technical docs
 - [x] Chunking strategy for RAG: 500 tokens with 50 overlap, and when to break the rule
-- [ ] LangChain vs LlamaIndex: which framework to reach for first
+- [x] LangChain vs LlamaIndex: which framework to reach for first
 - [ ] CrewAI multi-agent workflows: where role-based agents actually help
 - [ ] Groq vs standard APIs: what sub-second LLM inference changes in practice
 - [ ] Weights & Biases for solo builders: experiment tracking without the enterprise overhead
